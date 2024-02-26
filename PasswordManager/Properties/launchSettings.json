@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "PasswordManager": {
+      "commandName": "Project"
+    },
+    "Init": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "commandLineArgs": "init client.json server.json"
+    }
+  }
+}
