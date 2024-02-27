@@ -15,7 +15,7 @@ namespace PasswordManager
         public Client(string path)
         {
             _path = path;
-            byte[] RandomBytes = GenerateSecretKey();
+            RandomBytes = GenerateSecretKey();
 
             Dictionary<string, string> secretKeys = new Dictionary<string, string>();
             secretKeys.Add("secret", _secretKey);
