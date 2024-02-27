@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.IO;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace PasswordManager
 {
@@ -38,9 +40,16 @@ namespace PasswordManager
             Client client = new Client(args[1]);
             Server server = new Server(args[2]);
 
+            Dictionary<string, string> jsonFromFile = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(args[1]));
+
+            string key = jsonFromFile["secret"];
+            Console.WriteLine("Enter your master password: ");
+            Rfc2898DeriveBytes vaultKey = new Rfc2898DeriveBytes(Console.ReadLine(), client.RandomBytes, 10000, HashAlgorithmName.SHA256);
+
+            Console.WriteLine(vaultKey);
             // TODO:
-            // Get IV from server
             // Get secret key from client
+            // Get IV from server
             // Create unencrypted vault i server
             // Create vault key (secret key + master pw)
             // Create Aes object (vault key + IV)
