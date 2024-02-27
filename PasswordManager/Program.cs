@@ -44,9 +44,15 @@ namespace PasswordManager
 
             string key = jsonFromFile["secret"];
             Console.WriteLine("Enter your master password: ");
+
+            
             Rfc2898DeriveBytes vaultKey = new Rfc2898DeriveBytes(Console.ReadLine(), client.RandomBytes, 10000, HashAlgorithmName.SHA256);
 
-            Console.WriteLine(vaultKey);
+            //ChatGPT - converts vaultkey to a string "vaultKeyString" and prints it in the console
+            string vaultKeyText = BitConverter.ToString(vaultKey.GetBytes(32)).Replace("-", "");
+            Console.WriteLine($"Vault Key:  {vaultKeyText}");
+
+
             // TODO:
             // Get secret key from client
             // Get IV from server

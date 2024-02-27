@@ -1,7 +1,8 @@
 {
   "profiles": {
     "PasswordManager": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "init client.json server.json"
     },
     "Init": {
       "commandName": "Executable",
