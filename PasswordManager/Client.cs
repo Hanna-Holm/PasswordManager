@@ -15,8 +15,7 @@ namespace PasswordManager
             _secretKey = GenerateSecretKey();
 
             // _path = @path; // Hamnar i bin-foldern! några steg in
-            // I projektet behöver vi inte tänka på att inte skriva över, för vi vill skriva över!
-            File.WriteAllText(path, _secretKey); // (path, jsonDict) i projektarbetet, skapar fil om inte finns, annars skriver den över
+            File.WriteAllText(path, _secretKey); // (path, jsonDict), skapar fil om inte finns, annars skriver den över
 
             // string text = File.ReadAllText(path);
 
