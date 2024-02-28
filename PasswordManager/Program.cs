@@ -54,12 +54,11 @@ namespace PasswordManager
             // Create Aes object (vault key + IV)
             // Encrypt vault by using the Aes object encryption method
 
-            byte[] encryptedVault = EncryptJsonString(vaultAsJsonString, vaultKey.GetBytes(16), server.InitializationVector);
+            byte[] encryptedVaultAsBytes = EncryptJsonString(vaultAsJsonString, vaultKey.GetBytes(16), server.InitializationVector);
+            string encryptedVaultAsString = Convert.ToBase64String(encryptedVaultAsBytes);
 
-            string text = Convert.ToBase64String(encryptedVault);
-            Console.WriteLine("Encrypted vault as text");
-            Console.WriteLine(text);
-
+            // Skriv till server.json
+            server.WriteEncryptedVaultToJSON(encryptedVaultAsString);
         }
 
         public static byte[] EncryptJsonString(string vaultAsJsonString, byte[] vaultKey, byte[] iv)

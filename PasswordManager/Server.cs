@@ -1,4 +1,5 @@
 ﻿
+using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -6,16 +7,17 @@ namespace PasswordManager
 {
     internal class Server
     {
+        private string _path;
         private int _lengthOfKey = 16;
-        public byte[] InitializationVector;
+        public byte[] InitializationVector { get; }
         public Dictionary<string, string> Vault = new Dictionary<string, string>();
 
         public Server(string path)
         {
+            _path = path;
+
             // Create unencrypted vault, ska krypteras och sparas till server.json genom att använda Aes-objektet.
             Vault.Add("vault", "");
-
-
 
             InitializationVector = GenerateInitializationVector();
 
@@ -29,8 +31,6 @@ namespace PasswordManager
 
             // skriver jsonsträngen till server.json
             File.WriteAllText(path, jsonDictAsString);
-
-
         }
 
 
@@ -48,6 +48,11 @@ namespace PasswordManager
 
         public void Encrypt()
         {
+        }
+
+        public void WriteEncryptedVaultToJSON(string encryptedVaultAsText)
+        {
+            File.WriteAllText(_path, encryptedVaultAsText);
         }
     }
 }
