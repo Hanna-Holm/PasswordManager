@@ -46,13 +46,41 @@ namespace PasswordManager
 
         }
 
-        public void Encrypt()
+        public string Encrypt(Rfc2898DeriveBytes vaultKey)
         {
+            // Get vault as jsonstring -> encrypt it
+            string vaultAsJsonString = JsonSerializer.Serialize(Vault);
+
+            // IV + Vault key i Aes-objekt för att kryptera Vault!
+            byte[] encryptedVaultAsBytes = EncryptJsonString(vaultAsJsonString, vaultKey.GetBytes(16), InitializationVector);
+            return Convert.ToBase64String(encryptedVaultAsBytes);
         }
 
         public void WriteEncryptedVaultToJSON(string encryptedVaultAsText)
         {
             File.WriteAllText(_path, encryptedVaultAsText);
+        }
+
+        private static byte[] EncryptJsonString(string vaultAsJsonString, byte[] vaultKey, byte[] iv)
+        {
+            // Create Aes object (vault key + IV)
+            using (Aes aes = Aes.Create())
+            {
+                ICryptoTransform encryptor = aes.CreateEncryptor(vaultKey, iv);
+
+                using (MemoryStream msEncrypt = new MemoryStream())
+                {
+                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                    {
+                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
+                        {
+                            swEncrypt.Write(vaultAsJsonString);
+                        }
+                    }
+
+                    return msEncrypt.ToArray();
+                }
+            }
         }
     }
 }

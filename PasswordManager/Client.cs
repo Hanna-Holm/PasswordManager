@@ -45,5 +45,21 @@ namespace PasswordManager
             generator.GetBytes(randomBytes);
             return randomBytes;
         }
+
+        public Rfc2898DeriveBytes GenerateVaultKey()
+        {
+            // master password + secret key + Rfc2898DeriveBytes = vault key
+            // string secret = GetValueFromJSONFile(args[1], "secret"); // Behövs inte just nu, men kanske sedan i dekryptering?
+            Console.WriteLine("Enter your master password: ");
+            return new Rfc2898DeriveBytes(Console.ReadLine(), RandomBytes, 10000, HashAlgorithmName.SHA256);
+        }
+
+        private static string GetValueFromJSONFile(string pathToFile, string key)
+        {
+            string fileAsText = File.ReadAllText(pathToFile);
+            Dictionary<string, string> KeyValuePairs = JsonSerializer.Deserialize<Dictionary<string, string>>(fileAsText);
+            return KeyValuePairs[key];
+        }
+
     }
 }
