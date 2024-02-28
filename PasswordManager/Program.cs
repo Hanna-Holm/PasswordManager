@@ -11,6 +11,7 @@ namespace PasswordManager
             switch (args[0])
             {
                 case "init":
+                    // Encrypt server vault using master password
                     CreateNewVault(args);
                     break;
                 case "create":
@@ -33,29 +34,34 @@ namespace PasswordManager
 
         private static void CreateNewVault(string[] args)
         {
-            /* 
-             * encrypt your vault stored in < server > using <pwd >.
-            */
 
             Client client = new Client(args[1]);
             Server server = new Server(args[2]);
 
-            Dictionary<string, string> jsonFromFile = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(args[1]));
-
-            string key = jsonFromFile["secret"];
+            // GenerateVaultKey(); Vault key används i Aes för att kryptera Vault.
+            // master password + secret key + Rfc2898DeriveBytes = vault key
+            string secret = GetValueFromJSONFile(args[1], "secret");
             Console.WriteLine("Enter your master password: ");
             Rfc2898DeriveBytes vaultKey = new Rfc2898DeriveBytes(Console.ReadLine(), client.RandomBytes, 10000, HashAlgorithmName.SHA256);
-
             Console.WriteLine(vaultKey);
-            // TODO:
-            // Get secret key from client
+
+            // IV + Vault key i Aes-objekt för att kryptera Vault!
             // Get IV from server
-            // Create unencrypted vault i server
-            // Create vault key (secret key + master pw)
             // Create Aes object (vault key + IV)
             // Encrypt vault by using the Aes object encryption method
-            // After implementing init: implement decryption
 
+        }
+
+        private static void GenerateVaultKey()
+        {
+            
+        }
+
+        private static string GetValueFromJSONFile(string pathToFile, string key)
+        {
+            string fileAsText = File.ReadAllText(pathToFile);
+            Dictionary<string, string> KeyValuePairs = JsonSerializer.Deserialize<Dictionary<string, string>>(fileAsText);
+            return KeyValuePairs[key];
         }
 
         private static void CreateNewClientFileToExistingVault()

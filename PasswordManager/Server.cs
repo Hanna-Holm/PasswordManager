@@ -13,6 +13,7 @@ namespace PasswordManager
 
         public Server(string path)
         {
+            // Create unencrypted vault
             _vault.Add("vault", "");
 
             _initializationVector = GenerateInitializationVector();
@@ -29,11 +30,15 @@ namespace PasswordManager
 
         private string GenerateInitializationVector()
         {
+            // Antingen via RandomNumberGenerator.Create() och få byte[] som vi gör om till sträng
             RandomNumberGenerator generator = RandomNumberGenerator.Create();
             byte[] randomBytes = new byte[_lengthOfKey];
             generator.GetBytes(randomBytes);
             string base64Key = Convert.ToBase64String(randomBytes);
             return base64Key;
+
+            // Eller genom att skapa ett Aes-objekt för att generrera IV
+
         }
     }
 }
