@@ -7,7 +7,7 @@ namespace PasswordManager
     internal class Client
     {
         private string _path;
-        private int _lengthOfKey = 28;
+        private int _lengthOfKey = 16;
         private string _secretKey;
         public string SecretKey => _secretKey;
         public byte[] RandomBytes;

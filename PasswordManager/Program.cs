@@ -40,16 +40,47 @@ namespace PasswordManager
 
             // GenerateVaultKey(); Vault key används i Aes för att kryptera Vault.
             // master password + secret key + Rfc2898DeriveBytes = vault key
-            string secret = GetValueFromJSONFile(args[1], "secret");
+            // string secret = GetValueFromJSONFile(args[1], "secret"); // Behövs inte just nu, men kanske sedan i dekryptering?
             Console.WriteLine("Enter your master password: ");
             Rfc2898DeriveBytes vaultKey = new Rfc2898DeriveBytes(Console.ReadLine(), client.RandomBytes, 10000, HashAlgorithmName.SHA256);
-            Console.WriteLine(vaultKey);
+
+            // EcryptVault();
+            // Encrypt the JSON string
+            // Get vault as jsonstring
+            string vaultAsJsonString = JsonSerializer.Serialize(server.Vault);
 
             // IV + Vault key i Aes-objekt för att kryptera Vault!
-            // Get IV from server
+            // Get IV from server: server.InitializationVector
             // Create Aes object (vault key + IV)
             // Encrypt vault by using the Aes object encryption method
 
+            byte[] encryptedVault = EncryptJsonString(vaultAsJsonString, vaultKey.GetBytes(16), server.InitializationVector);
+
+            string text = Convert.ToBase64String(encryptedVault);
+            Console.WriteLine("Encrypted vault as text");
+            Console.WriteLine(text);
+
+        }
+
+        public static byte[] EncryptJsonString(string vaultAsJsonString, byte[] vaultKey, byte[] iv)
+        {
+            using (Aes aes = Aes.Create())
+            {
+                ICryptoTransform encryptor = aes.CreateEncryptor(vaultKey, iv);
+
+                using (MemoryStream msEncrypt = new MemoryStream())
+                {
+                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                    {
+                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
+                        {
+                            swEncrypt.Write(vaultAsJsonString);
+                        }
+                    }
+
+                    return msEncrypt.ToArray();
+                }
+            }
         }
 
         private static void GenerateVaultKey()
