@@ -7,6 +7,11 @@
       "commandName": "Executable",
       "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
       "commandLineArgs": "init client.json server.json"
+    },
+    "Create": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "commandLineArgs": "create client2.json server.json"
     }
   }
 }

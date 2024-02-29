@@ -16,7 +16,7 @@ namespace PasswordManager
             _path = path;
 
             GenerateInitializationVector();
-            FormatAndSaveIVToJSON();
+            // FormatAndSaveIVToJSON();
 
             CreateVault();
         }
@@ -49,27 +49,25 @@ namespace PasswordManager
         private void CreateVault()
         {
             Vault = new Dictionary<string, string>();
-            Vault.Add("vault", "");
         }
 
-
-        public void EncryptVault(Rfc2898DeriveBytes vaultKey)
+        public void SaveEncryptedVaultToJSON(byte[] encryptedVault)
         {
             // Get vault as jsonstring
-            byte[] encryptedVaultAsBytes = Encrypt(JsonSerializer.Serialize(Vault), vaultKey.GetBytes(16), InitializationVector);
-            string encryptedVaultAsString = Convert.ToBase64String(encryptedVaultAsBytes);
+            string encryptedVaultAsString = Convert.ToBase64String(encryptedVault);
 
             // Skriv till server.json
             File.WriteAllText(_path, encryptedVaultAsString);
         }
 
-        private byte[] Encrypt(string vaultAsJsonString, byte[] vaultKey, byte[] iv)
+        public byte[] Encrypt(Rfc2898DeriveBytes vaultKey)
         {
             // IV + Vault key (i Aes-objekt) för att kryptera Vault!
+            string vaultAsJsonString = JsonSerializer.Serialize(Vault);
 
             using (Aes aes = Aes.Create())
             {
-                ICryptoTransform encryptor = aes.CreateEncryptor(vaultKey, iv);
+                ICryptoTransform encryptor = aes.CreateEncryptor(vaultKey.GetBytes(16), InitializationVector);
 
                 using (MemoryStream msEncrypt = new MemoryStream())
                 {
