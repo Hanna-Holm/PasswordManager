@@ -1,5 +1,4 @@
 ﻿
-using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -9,61 +8,65 @@ namespace PasswordManager
     {
         private string _path;
         private int _lengthOfKey = 16;
-        public byte[] InitializationVector { get; }
-        public Dictionary<string, string> Vault = new Dictionary<string, string>();
+        public byte[] InitializationVector { get; private set; }
+        public Dictionary<string, string> Vault { get; private set; }
 
         public Server(string path)
         {
             _path = path;
 
-            // Create unencrypted vault, ska krypteras och sparas till server.json genom att använda Aes-objektet.
-            Vault.Add("vault", "");
+            GenerateInitializationVector();
+            FormatAndSaveIVToJSON();
 
-            InitializationVector = GenerateInitializationVector();
-
-            // Convert IV from byte[] format to string-format.
-            string IvAsString = Convert.ToBase64String(InitializationVector);
-
-            // Skapar dictionary med IV som vi serialiserar till jsonsträng
-            Dictionary<string, string> IVectors = new Dictionary<string, string>();
-            IVectors.Add("IV", IvAsString);
-            string jsonDictAsString = JsonSerializer.Serialize(IVectors);
-
-            // skriver jsonsträngen till server.json
-            File.WriteAllText(path, jsonDictAsString);
+            CreateVault();
         }
 
-
-        private byte[] GenerateInitializationVector()
+        private void GenerateInitializationVector()
         {
-            // Antingen via RandomNumberGenerator.Create() och få byte[] som vi gör om till sträng
+            // Antingen via RandomNumberGenerator:
             RandomNumberGenerator generator = RandomNumberGenerator.Create();
-            byte[] randomBytes = new byte[_lengthOfKey];
-            generator.GetBytes(randomBytes);
-            return randomBytes;
+            InitializationVector = new byte[_lengthOfKey];
+            generator.GetBytes(InitializationVector);
 
             // Eller genom att skapa ett Aes-objekt för att generera IV
 
         }
 
-        public string Encrypt(Rfc2898DeriveBytes vaultKey)
+        private void FormatAndSaveIVToJSON()
         {
-            // Get vault as jsonstring -> encrypt it
-            string vaultAsJsonString = JsonSerializer.Serialize(Vault);
+            // Convert IV from byte[] to string.
+            string IVAsString = Convert.ToBase64String(InitializationVector);
 
-            // IV + Vault key i Aes-objekt för att kryptera Vault!
-            byte[] encryptedVaultAsBytes = EncryptJsonString(vaultAsJsonString, vaultKey.GetBytes(16), InitializationVector);
-            return Convert.ToBase64String(encryptedVaultAsBytes);
+            Console.WriteLine("The IV is: " + IVAsString);
+
+            Dictionary<string, string> IVectors = new Dictionary<string, string>();
+            IVectors.Add("IV", IVAsString);
+
+            string jsonDictAsString = JsonSerializer.Serialize(IVectors);
+            File.WriteAllText(_path, jsonDictAsString);
         }
 
-        public void WriteEncryptedVaultToJSON(string encryptedVaultAsText)
+        private void CreateVault()
         {
-            File.WriteAllText(_path, encryptedVaultAsText);
+            Vault = new Dictionary<string, string>();
+            Vault.Add("vault", "");
         }
 
-        private static byte[] EncryptJsonString(string vaultAsJsonString, byte[] vaultKey, byte[] iv)
+
+        public void EncryptVault(Rfc2898DeriveBytes vaultKey)
         {
-            // Create Aes object (vault key + IV)
+            // Get vault as jsonstring
+            byte[] encryptedVaultAsBytes = Encrypt(JsonSerializer.Serialize(Vault), vaultKey.GetBytes(16), InitializationVector);
+            string encryptedVaultAsString = Convert.ToBase64String(encryptedVaultAsBytes);
+
+            // Skriv till server.json
+            File.WriteAllText(_path, encryptedVaultAsString);
+        }
+
+        private byte[] Encrypt(string vaultAsJsonString, byte[] vaultKey, byte[] iv)
+        {
+            // IV + Vault key (i Aes-objekt) för att kryptera Vault!
+
             using (Aes aes = Aes.Create())
             {
                 ICryptoTransform encryptor = aes.CreateEncryptor(vaultKey, iv);

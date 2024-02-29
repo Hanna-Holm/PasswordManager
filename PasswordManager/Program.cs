@@ -1,6 +1,5 @@
-﻿using System.IO;
+﻿
 using System.Security.Cryptography;
-using System.Text.Json;
 
 namespace PasswordManager
 {
@@ -11,7 +10,7 @@ namespace PasswordManager
             switch (args[0])
             {
                 case "init":
-                    // Encrypt server vault using master password
+                    // The creation and encryption of a vault
                     CreateNewVault(args);
                     break;
                 case "create":
@@ -32,43 +31,41 @@ namespace PasswordManager
             }
         }
 
+        // "init"-command
         private static void CreateNewVault(string[] args)
         {
             Client client = new Client(args[1]);
             Server server = new Server(args[2]);
 
-            // Vault key används i Aes för att kryptera Vault.
-            Rfc2898DeriveBytes vaultKey = client.GenerateVaultKey();
-
-            // Get vault as jsonstring -> encrypt it
-            string encryptedVaultAsString = server.Encrypt(vaultKey);
-
-            // Skriv till server.json
-            server.WriteEncryptedVaultToJSON(encryptedVaultAsString);
+            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
+            server.EncryptVault(vaultKey);
         }
 
-        private static void GenerateVaultKey()
-        {
-            
-        }
-
+        // "create"-command
         private static void CreateNewClientFileToExistingVault()
         {
 
         }
 
+        // "get"-command
         private static void ShowPropertyValueInVault()
         {
 
         }
+
+        // "set"-command
         private static void StorePropertyValueInVault()
         {
 
         }
+
+        // "delete"-command
         private static void DeletePropertyFromVault()
         {
 
         }
+
+        // "secret"-command
         private static void ShowSecretKey()
         {
 
