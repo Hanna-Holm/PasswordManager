@@ -1,6 +1,5 @@
-﻿using System.IO;
+﻿
 using System.Security.Cryptography;
-using System.Text.Json;
 
 namespace PasswordManager
 {
@@ -32,6 +31,7 @@ namespace PasswordManager
             }
         }
 
+        // "init"-command
         private static void CreateNewVault(string[] args)
         {
             Client client = new Client(args[1]);
@@ -41,23 +41,31 @@ namespace PasswordManager
             server.EncryptVault(vaultKey);
         }
 
+        // "create"-command
         private static void CreateNewClientFileToExistingVault()
         {
 
         }
 
+        // "get"-command
         private static void ShowPropertyValueInVault()
         {
 
         }
+
+        // "set"-command
         private static void StorePropertyValueInVault()
         {
 
         }
+
+        // "delete"-command
         private static void DeletePropertyFromVault()
         {
 
         }
+
+        // "secret"-command
         private static void ShowSecretKey()
         {
 

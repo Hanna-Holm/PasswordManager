@@ -1,6 +1,4 @@
 ﻿
-using System;
-using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -21,12 +19,11 @@ namespace PasswordManager
             FormatAndSaveIVToJSON();
 
             CreateVault();
-
         }
 
         private void GenerateInitializationVector()
         {
-            // Antingen via RandomNumberGenerator.Create() och få byte[] som vi gör om till sträng
+            // Antingen via RandomNumberGenerator:
             RandomNumberGenerator generator = RandomNumberGenerator.Create();
             InitializationVector = new byte[_lengthOfKey];
             generator.GetBytes(InitializationVector);
