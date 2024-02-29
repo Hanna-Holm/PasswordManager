@@ -10,7 +10,7 @@ namespace PasswordManager
         private int _lengthOfKey = 16;
         private string _secretKey;
         public string SecretKey => _secretKey;
-        public byte[] RandomBytes { get; private set; }
+        public byte[] SecretKeyAsBytes { get; private set; }
 
         public Client(string path)
         {
@@ -18,21 +18,20 @@ namespace PasswordManager
             GenerateSecretKey();
             FormatAndSaveSecretKeyToJSON();
 
-            Console.WriteLine("The secret key is: " + _secretKey);
+            Console.WriteLine($"The secret key is: {_secretKey}");
         }
 
         private void GenerateSecretKey()
         {
-            // Blir detta salt eller secret key?
             RandomNumberGenerator generator = RandomNumberGenerator.Create();
-            RandomBytes = new byte[_lengthOfKey];
-            generator.GetBytes(RandomBytes);
+            SecretKeyAsBytes = new byte[_lengthOfKey];
+            generator.GetBytes(SecretKeyAsBytes);
         }
 
         private void FormatAndSaveSecretKeyToJSON()
         {
             // Convert secret key(?) from byte[] to string.
-            _secretKey = Convert.ToBase64String(RandomBytes);
+            _secretKey = Convert.ToBase64String(SecretKeyAsBytes);
 
             Dictionary<string, string> secretKeys = new Dictionary<string, string>();
             secretKeys.Add("secret", _secretKey);
@@ -45,7 +44,7 @@ namespace PasswordManager
         {
             // master password + secret key + Rfc2898DeriveBytes = vault key
             Console.WriteLine("Enter your master password: ");
-            return new Rfc2898DeriveBytes(Console.ReadLine(), RandomBytes, 10000, HashAlgorithmName.SHA256);
+            return new Rfc2898DeriveBytes(Console.ReadLine(), SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
         }
 
         private static string GetValueFromJSONFile(string pathToFile, string key)
