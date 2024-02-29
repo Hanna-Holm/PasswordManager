@@ -14,7 +14,7 @@ namespace PasswordManager
                     CreateNewVault(args);
                     break;
                 case "create":
-                    CreateNewClientFileToExistingVault(args[1]);
+                    CreateNewClientFileToExistingVault(args);
                     break;
                 case "get":
                     ShowPropertyValueInVault();
@@ -34,8 +34,10 @@ namespace PasswordManager
         // "init"-command
         private static void CreateNewVault(string[] args)
         {
+            
             Client client = new Client(args[1]);
             Server server = new Server(args[2]);
+            server.CreateVault();
 
             Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
             byte[] encryptedVault = server.Encrypt(vaultKey);
@@ -43,9 +45,13 @@ namespace PasswordManager
         }
 
         // "create"-command
-        private static void CreateNewClientFileToExistingVault(string clientPath)
+        private static void CreateNewClientFileToExistingVault(string[] args)
         {
-
+            string encryptedVaultAsText = File.ReadAllText(args[2]);
+            Server server = new Server(args[2]);
+            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
+            string decryptedVault = server.Decrypt(vaultKey);
+            Console.WriteLine("Enter master password: ");
         }
 
         // "get"-command

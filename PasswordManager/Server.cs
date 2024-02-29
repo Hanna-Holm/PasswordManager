@@ -1,6 +1,7 @@
 ﻿
 using System.Security.Cryptography;
 using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PasswordManager
 {
@@ -14,11 +15,10 @@ namespace PasswordManager
         public Server(string path)
         {
             _path = path;
-
             GenerateInitializationVector();
             // FormatAndSaveIVToJSON();
 
-            CreateVault();
+
         }
 
         private void GenerateInitializationVector()
@@ -46,7 +46,7 @@ namespace PasswordManager
             File.WriteAllText(_path, jsonDictAsString);
         }
 
-        private void CreateVault()
+        public void CreateVault()
         {
             Vault = new Dictionary<string, string>();
         }
@@ -82,6 +82,12 @@ namespace PasswordManager
                     return msEncrypt.ToArray();
                 }
             }
+        }
+
+        public string Decrypt()
+        {
+            //Skapa en vault key för att låsa upp valvet
+            return "";
         }
     }
 }
