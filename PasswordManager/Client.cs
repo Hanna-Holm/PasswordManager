@@ -10,56 +10,50 @@ namespace PasswordManager
         private int _lengthOfKey = 16;
         private string _secretKey;
         public string SecretKey => _secretKey;
-        public byte[] RandomBytes;
+        public byte[] RandomBytes { get; private set; }
 
         public Client(string path)
         {
-            // Generate and save secret key unencrypted
             _path = path;
+            GenerateSecretKey();
+            FormatAndSaveSecretKeyToJSON();
 
-            // Get secret key as byte[]
-            RandomBytes = GenerateRandomBytes();
+            Console.WriteLine("The secret key is: " + _secretKey);
+        }
 
-            // Convert secret key from byte[] format to string-format.
+        private void GenerateSecretKey()
+        {
+            // Blir detta salt eller secret key?
+            RandomNumberGenerator generator = RandomNumberGenerator.Create();
+            RandomBytes = new byte[_lengthOfKey];
+            generator.GetBytes(RandomBytes);
+        }
+
+        private void FormatAndSaveSecretKeyToJSON()
+        {
+            // Convert secret key(?) from byte[] to string.
             _secretKey = Convert.ToBase64String(RandomBytes);
 
-            // Add secret key to dictionary
             Dictionary<string, string> secretKeys = new Dictionary<string, string>();
             secretKeys.Add("secret", _secretKey);
 
-            // Serialize dictionary to string
-            string jsonDict = JsonSerializer.Serialize(secretKeys);
-            Console.WriteLine(jsonDict);
-
-            // Saves string-formatted dictionary to JSON file.
-            File.WriteAllText(_path, jsonDict); 
-
-            // string text = File.ReadAllText(path);
+            string jsonDictAsString = JsonSerializer.Serialize(secretKeys);
+            File.WriteAllText(_path, jsonDictAsString);
         }
 
-
-        private byte[] GenerateRandomBytes()
-        {
-            RandomNumberGenerator generator = RandomNumberGenerator.Create();
-            byte[] randomBytes = new byte[_lengthOfKey];
-            generator.GetBytes(randomBytes);
-            return randomBytes;
-        }
-
-        public Rfc2898DeriveBytes GenerateVaultKey()
+        public Rfc2898DeriveBytes DeriveVaultKey()
         {
             // master password + secret key + Rfc2898DeriveBytes = vault key
-            // string secret = GetValueFromJSONFile(args[1], "secret"); // Behövs inte just nu, men kanske sedan i dekryptering?
             Console.WriteLine("Enter your master password: ");
             return new Rfc2898DeriveBytes(Console.ReadLine(), RandomBytes, 10000, HashAlgorithmName.SHA256);
         }
 
         private static string GetValueFromJSONFile(string pathToFile, string key)
         {
+            // string secret = GetValueFromJSONFile(args[1], "secret"); 
             string fileAsText = File.ReadAllText(pathToFile);
             Dictionary<string, string> KeyValuePairs = JsonSerializer.Deserialize<Dictionary<string, string>>(fileAsText);
             return KeyValuePairs[key];
         }
-
     }
 }
