@@ -1,7 +1,6 @@
 ﻿
 using System.Security.Cryptography;
 using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PasswordManager
 {
@@ -15,13 +14,9 @@ namespace PasswordManager
         public Server(string path)
         {
             _path = path;
-            GenerateInitializationVector();
-            // FormatAndSaveIVToJSON();
-
-
         }
 
-        private void GenerateInitializationVector()
+        public void GenerateInitializationVector()
         {
             // Antingen via RandomNumberGenerator:
             RandomNumberGenerator generator = RandomNumberGenerator.Create();
@@ -32,23 +27,10 @@ namespace PasswordManager
 
         }
 
-        private void FormatAndSaveIVToJSON()
-        {
-            // Convert IV from byte[] to string.
-            string IVAsString = Convert.ToBase64String(InitializationVector);
-
-            Console.WriteLine("The IV is: " + IVAsString);
-
-            Dictionary<string, string> IVectors = new Dictionary<string, string>();
-            IVectors.Add("IV", IVAsString);
-
-            string jsonDictAsString = JsonSerializer.Serialize(IVectors);
-            File.WriteAllText(_path, jsonDictAsString);
-        }
-
         public void CreateVault()
         {
             Vault = new Dictionary<string, string>();
+            Vault.Add("Google", "hej123");
         }
 
         public void SaveEncryptedVaultToJSON(byte[] encryptedVault)
@@ -64,7 +46,7 @@ namespace PasswordManager
         {
             // IV + Vault key (i Aes-objekt) för att kryptera Vault!
             string vaultAsJsonString = JsonSerializer.Serialize(Vault);
-
+            Console.WriteLine("This is the vault as json stirng" + vaultAsJsonString);
             using (Aes aes = Aes.Create())
             {
                 ICryptoTransform encryptor = aes.CreateEncryptor(vaultKey.GetBytes(16), InitializationVector);
@@ -84,10 +66,41 @@ namespace PasswordManager
             }
         }
 
-        public string Decrypt()
+        public string Decrypt(byte[] encryptedVaultAsBytes, Rfc2898DeriveBytes vaultKey)
         {
-            //Skapa en vault key för att låsa upp valvet
-            return "";
+            string simpletext = String.Empty;
+
+            using (Aes aes = Aes.Create())
+            {
+                ICryptoTransform decryptor = aes.CreateDecryptor(vaultKey.GetBytes(16), InitializationVector);
+                using (MemoryStream memoryStream = new MemoryStream(encryptedVaultAsBytes))
+                {
+                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
+                    {
+                        using (StreamReader streamReader = new StreamReader(cryptoStream))
+                        {
+                            simpletext = streamReader.ReadToEnd();
+                        }
+                    }
+                }
+            }
+
+            return simpletext;
         }
+
+        private void FormatAndSaveIVToJSON()
+        {
+            // Convert IV from byte[] to string.
+            string IVAsString = Convert.ToBase64String(InitializationVector);
+
+            Console.WriteLine("The IV is: " + IVAsString);
+
+            Dictionary<string, string> IVectors = new Dictionary<string, string>();
+            IVectors.Add("IV", IVAsString);
+
+            string jsonDictAsString = JsonSerializer.Serialize(IVectors);
+            File.WriteAllText(_path, jsonDictAsString);
+        }
+
     }
 }

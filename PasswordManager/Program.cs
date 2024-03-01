@@ -1,5 +1,6 @@
 ﻿
 using System.Security.Cryptography;
+using System.Text;
 
 namespace PasswordManager
 {
@@ -36,7 +37,13 @@ namespace PasswordManager
         {
             
             Client client = new Client(args[1]);
+            client.GenerateSecretKey();
+            client.FormatAndSaveSecretKeyToJSON();
+
             Server server = new Server(args[2]);
+            server.GenerateInitializationVector();
+            // server.FormatAndSaveIVToJSON();
+
             server.CreateVault();
 
             Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
@@ -47,11 +54,18 @@ namespace PasswordManager
         // "create"-command
         private static void CreateNewClientFileToExistingVault(string[] args)
         {
-            string encryptedVaultAsText = File.ReadAllText(args[2]);
+            Client client = new Client(args[1]);
             Server server = new Server(args[2]);
-            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
-            string decryptedVault = server.Decrypt(vaultKey);
-            Console.WriteLine("Enter master password: ");
+
+            Console.WriteLine("Enter your secret key: ");
+            string secretKey = Console.ReadLine();
+            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey(secretKey);
+
+            string encryptedVaultAsText = File.ReadAllText(args[2]);
+            byte[] encryptedVaultAsBytes = Encoding.UTF8.GetBytes(encryptedVaultAsText);
+            string decryptedVault = server.Decrypt(encryptedVaultAsBytes, vaultKey);
+            Console.WriteLine(decryptedVault);
+
         }
 
         // "get"-command

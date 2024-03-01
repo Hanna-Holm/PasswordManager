@@ -1,5 +1,6 @@
 ﻿
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace PasswordManager
@@ -15,20 +16,16 @@ namespace PasswordManager
         public Client(string path)
         {
             _path = path;
-            GenerateSecretKey();
-            FormatAndSaveSecretKeyToJSON();
-
-            Console.WriteLine($"The secret key is: {_secretKey}");
         }
 
-        private void GenerateSecretKey()
+        public void GenerateSecretKey()
         {
             RandomNumberGenerator generator = RandomNumberGenerator.Create();
             SecretKeyAsBytes = new byte[_lengthOfKey];
             generator.GetBytes(SecretKeyAsBytes);
         }
 
-        private void FormatAndSaveSecretKeyToJSON()
+        public void FormatAndSaveSecretKeyToJSON()
         {
             // Convert secret key(?) from byte[] to string.
             _secretKey = Convert.ToBase64String(SecretKeyAsBytes);
@@ -45,6 +42,14 @@ namespace PasswordManager
             // master password + secret key + Rfc2898DeriveBytes = vault key
             Console.WriteLine("Enter your master password: ");
             return new Rfc2898DeriveBytes(Console.ReadLine(), SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
+        }
+
+        public Rfc2898DeriveBytes DeriveVaultKey(string secretKey)
+        {
+            // master password + secret key + Rfc2898DeriveBytes = vault key
+            byte[] secretKeyAsBytes = Encoding.UTF8.GetBytes(secretKey);
+            Console.WriteLine("Enter your master password: ");
+            return new Rfc2898DeriveBytes(Console.ReadLine(), secretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
         }
 
         private static string GetValueFromJSONFile(string pathToFile, string key)
