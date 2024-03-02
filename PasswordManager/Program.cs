@@ -1,5 +1,6 @@
 ﻿
 using System.Security.Cryptography;
+using System.Text;
 
 namespace PasswordManager
 {
@@ -7,11 +8,12 @@ namespace PasswordManager
     {
         static void Main(string[] args)
         {
-            switch (args[0])
+            string command = args[0].ToLower();
+
+            switch (command)
             {
                 case "init":
-                    // The creation and encryption of a vault
-                    CreateNewVault(args);
+                    InitializeVault(args);
                     break;
                 case "create":
                     CreateNewClientFileToExistingVault(args);
@@ -28,30 +30,48 @@ namespace PasswordManager
                 case "secret":
                     ShowSecretKey();
                     break;
+                default:
+                    Console.WriteLine("The command is not valid.");
+                    break;
             }
         }
 
-        // "init"-command
-        private static void CreateNewVault(string[] args)
+        // "init"-command - the creation and encryption of a vault
+        private static void InitializeVault(string[] args)
         {
-            
-            Client client = new Client(args[1]);
-            Server server = new Server(args[2]);
-            server.CreateVault();
+            FileHandler fileHandler = new FileHandler();
+            string clientPath = args[1];
+            string serverPath = args[2];
+
+            Client client = new Client(clientPath);
+            string secretKey = client.GenerateSecretKey();
+            fileHandler.WriteToJson(clientPath, "secret", secretKey);
 
             Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
-            byte[] encryptedVault = server.Encrypt(vaultKey);
-            server.SaveEncryptedVaultToJSON(encryptedVault);
+
+            Server server = new Server(serverPath);
+            server.GenerateIV();
+            server.CreateVault();
+
+            byte[] encryptedVaultValuesAsBytes = server.Encrypt(vaultKey);
+
+            server.WriteIVAndEncryptedVaultToJSON(encryptedVaultValuesAsBytes);
         }
 
         // "create"-command
         private static void CreateNewClientFileToExistingVault(string[] args)
         {
-            string encryptedVaultAsText = File.ReadAllText(args[2]);
+            Client client = new Client(args[1]);
             Server server = new Server(args[2]);
-            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
-            string decryptedVault = server.Decrypt(vaultKey);
-            Console.WriteLine("Enter master password: ");
+
+            Console.WriteLine("Enter your secret key: ");
+            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey(Console.ReadLine());
+
+            string encryptedVaultAsText = File.ReadAllText(args[2]);
+            byte[] encryptedVaultAsBytes = Encoding.UTF8.GetBytes(encryptedVaultAsText);
+            string decryptedVault = server.Decrypt(encryptedVaultAsBytes, vaultKey);
+            Console.WriteLine(decryptedVault);
+
         }
 
         // "get"-command
