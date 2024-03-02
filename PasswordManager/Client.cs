@@ -9,8 +9,6 @@ namespace PasswordManager
     {
         private string _path;
         private int _lengthOfKey = 16;
-        private string _secretKey;
-        public string SecretKey => _secretKey;
         public byte[] SecretKeyAsBytes { get; private set; }
 
         public Client(string path)
@@ -18,46 +16,24 @@ namespace PasswordManager
             _path = path;
         }
 
-        public void GenerateSecretKey()
+        public string GenerateSecretKey()
         {
             RandomNumberGenerator generator = RandomNumberGenerator.Create();
             SecretKeyAsBytes = new byte[_lengthOfKey];
             generator.GetBytes(SecretKeyAsBytes);
-        }
-
-        public void FormatAndSaveSecretKeyToJSON()
-        {
-            // Convert secret key(?) from byte[] to string.
-            _secretKey = Convert.ToBase64String(SecretKeyAsBytes);
-
-            Dictionary<string, string> secretKeys = new Dictionary<string, string>();
-            secretKeys.Add("secret", _secretKey);
-
-            string jsonDictAsString = JsonSerializer.Serialize(secretKeys);
-            File.WriteAllText(_path, jsonDictAsString);
+            return Convert.ToBase64String(SecretKeyAsBytes);
         }
 
         public Rfc2898DeriveBytes DeriveVaultKey()
         {
-            // master password + secret key + Rfc2898DeriveBytes = vault key
             Console.WriteLine("Enter your master password: ");
             return new Rfc2898DeriveBytes(Console.ReadLine(), SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
         }
 
         public Rfc2898DeriveBytes DeriveVaultKey(string secretKey)
         {
-            // master password + secret key + Rfc2898DeriveBytes = vault key
-            byte[] secretKeyAsBytes = Encoding.UTF8.GetBytes(secretKey);
-            Console.WriteLine("Enter your master password: ");
-            return new Rfc2898DeriveBytes(Console.ReadLine(), secretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
-        }
-
-        private static string GetValueFromJSONFile(string pathToFile, string key)
-        {
-            // string secret = GetValueFromJSONFile(args[1], "secret"); 
-            string fileAsText = File.ReadAllText(pathToFile);
-            Dictionary<string, string> KeyValuePairs = JsonSerializer.Deserialize<Dictionary<string, string>>(fileAsText);
-            return KeyValuePairs[key];
+            SecretKeyAsBytes = Encoding.UTF8.GetBytes(secretKey);
+            return DeriveVaultKey();
         }
     }
 }
