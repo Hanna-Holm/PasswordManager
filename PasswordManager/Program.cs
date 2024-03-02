@@ -4,9 +4,9 @@ using System.Text;
 
 namespace PasswordManager
 {
-    internal class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             string command = args[0].ToLower();
 
