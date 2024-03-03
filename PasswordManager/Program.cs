@@ -47,31 +47,47 @@ namespace PasswordManager
             string secretKey = client.GenerateSecretKey();
             fileHandler.WriteToJson(clientPath, "secret", secretKey);
 
-            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
-
             Server server = new Server(serverPath);
             server.GenerateIV();
             server.CreateVault();
 
+            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
             byte[] encryptedVaultValuesAsBytes = server.Encrypt(vaultKey);
-
             server.WriteIVAndEncryptedVaultToJSON(encryptedVaultValuesAsBytes);
         }
 
-        // "create"-command
+        // "create" command: creates a new client-file to an existing server
         private static void CreateNewClientFileToExistingVault(string[] args)
         {
-            Client client = new Client(args[1]);
-            Server server = new Server(args[2]);
+            FileHandler fileHandler = new FileHandler();
+            Authenticator authenticator = new Authenticator();
 
+            // NOTE! The master password NEEDS to be prompted first in order for the tests to pass!!
+            Console.WriteLine("Enter your master password: ");
+            string masterPassword = Console.ReadLine();
             Console.WriteLine("Enter your secret key: ");
-            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey(Console.ReadLine());
+            string secretKey = Console.ReadLine();
+            byte[] SecretKeyAsBytes = new byte[16];
 
-            string encryptedVaultAsText = File.ReadAllText(args[2]);
-            byte[] encryptedVaultAsBytes = Encoding.UTF8.GetBytes(encryptedVaultAsText);
-            string decryptedVault = server.Decrypt(encryptedVaultAsBytes, vaultKey);
-            Console.WriteLine(decryptedVault);
+            try
+            {
+                SecretKeyAsBytes = Convert.FromBase64String(secretKey);
+            }
+            catch
+            {
+                Console.WriteLine("Invalid secret key.");
+            }
 
+            Rfc2898DeriveBytes vaultKey = new Rfc2898DeriveBytes(masterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
+
+            string serverPath = args[2];
+            bool couldAuthenticate = authenticator.TryAuthenticateClient(vaultKey, serverPath);
+            if (couldAuthenticate)
+            {
+                string newClientPath = args[1];
+                fileHandler.WriteToJson(newClientPath, "secret", secretKey);
+                Console.WriteLine($"Successfully logged in to server and created new client: {newClientPath}");
+            }
         }
 
         // "get"-command

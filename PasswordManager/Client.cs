@@ -1,7 +1,6 @@
 ﻿
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 
 namespace PasswordManager
 {
@@ -18,9 +17,12 @@ namespace PasswordManager
 
         public string GenerateSecretKey()
         {
-            RandomNumberGenerator generator = RandomNumberGenerator.Create();
-            SecretKeyAsBytes = new byte[_lengthOfKey];
-            generator.GetBytes(SecretKeyAsBytes);
+            using (RandomNumberGenerator generator = RandomNumberGenerator.Create())
+            {
+                SecretKeyAsBytes = new byte[_lengthOfKey];
+                generator.GetBytes(SecretKeyAsBytes);
+            }
+
             return Convert.ToBase64String(SecretKeyAsBytes);
         }
 
@@ -28,12 +30,6 @@ namespace PasswordManager
         {
             Console.WriteLine("Enter your master password: ");
             return new Rfc2898DeriveBytes(Console.ReadLine(), SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
-        }
-
-        public Rfc2898DeriveBytes DeriveVaultKey(string secretKey)
-        {
-            SecretKeyAsBytes = Encoding.UTF8.GetBytes(secretKey);
-            return DeriveVaultKey();
         }
     }
 }
