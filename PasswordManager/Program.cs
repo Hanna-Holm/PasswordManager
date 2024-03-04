@@ -1,6 +1,6 @@
 ﻿
 using System.Security.Cryptography;
-using System.Text;
+using System.Text.Json;
 
 namespace PasswordManager
 {
@@ -19,7 +19,7 @@ namespace PasswordManager
                     CreateNewClientFileToExistingVault(args);
                     break;
                 case "get":
-                    ShowPropertyValueInVault();
+                    ShowPropertyValueInVault(args);
                     break;
                 case "set":
                     StorePropertyValueInVault();
@@ -75,13 +75,17 @@ namespace PasswordManager
             }
             catch
             {
-                Console.WriteLine("Invalid secret key.");
+                Console.WriteLine("Something went wrong.");
             }
 
             Rfc2898DeriveBytes vaultKey = new Rfc2898DeriveBytes(masterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
 
             string serverPath = args[2];
-            bool couldAuthenticate = authenticator.TryAuthenticateClient(vaultKey, serverPath);
+            Server server = new Server(serverPath);
+            string IV = fileHandler.ReadValueFromJson(serverPath, "IV");
+            server.SetIV(IV);
+
+            bool couldAuthenticate = authenticator.TryAuthenticateClient(vaultKey, server);
             if (couldAuthenticate)
             {
                 string newClientPath = args[1];
@@ -91,12 +95,52 @@ namespace PasswordManager
         }
 
         // "get"-command
-        private static void ShowPropertyValueInVault()
+        private static void ShowPropertyValueInVault(string[] args)
         {
+            string clientPath = args[1];
+            string serverPath = args[2];
 
+            Client client = new Client(clientPath);
+            FileHandler fileHandler = new FileHandler();
+            Authenticator authenticator = new Authenticator();
+
+            string secretKeyAsString = fileHandler.ReadValueFromJson(clientPath, "secret");
+            client.SecretKeyAsBytes = Convert.FromBase64String(secretKeyAsString);
+
+            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
+
+            Server server = new Server(serverPath);
+            string IV = fileHandler.ReadValueFromJson(server.Path, "IV");
+            server.SetIV(IV);
+
+            byte[] encryptedVault = server.GetEncryptedVault();
+            string decryptedVault = server.Decrypt(encryptedVault, vaultKey);
+            try
+            {
+                Dictionary<string, string> vault = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedVault);
+
+                if (args.Length == 4)
+                {
+                    // args[3] är property (domänen) för vilken vi vill hämta ut specifikt lösenord
+                    string propertyRequest = args[3];
+                    string requestedPassword = vault[propertyRequest];
+                    Console.WriteLine($"The requested password is: {requestedPassword}");
+                }
+                else
+                {
+                    foreach (var v in vault)
+                    {
+                        Console.WriteLine(v.Key);
+                    }
+                }
+            }
+            catch
+            {
+                Console.WriteLine("");
+            }
         }
 
-        // "set"-command
+        // "set"-command: save domain with password in server.json "vault"
         private static void StorePropertyValueInVault()
         {
 

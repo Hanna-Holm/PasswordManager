@@ -6,35 +6,49 @@ namespace PasswordManager
 {
     internal class Server
     {
-        private string _path;
+        public string Path;
         private int _lengthOfKey = 16;
         public byte[] IV { get; set; }
-        public Dictionary<string, string> Vault { get; private set; }
+        public Dictionary<string, Dictionary<string, string>> Vault { get; private set; }
         private Dictionary<string, string> _domainsWithPasswords;
 
         public Server(string path)
         {
-            _path = path;
+            Path = path;
         }
 
         public void GenerateIV()
         {
             // Antingen via RandomNumberGenerator:
-            RandomNumberGenerator generator = RandomNumberGenerator.Create();
-            IV = new byte[_lengthOfKey];
-            generator.GetBytes(IV);
+            using (RandomNumberGenerator generator = RandomNumberGenerator.Create())
+            {
+                IV = new byte[_lengthOfKey];
+                generator.GetBytes(IV);
+            }
 
             // Eller genom att skapa ett Aes-objekt för att generera IV
 
         }
 
+        public void SetIV(string IV)
+        {
+            byte[] IVAsBytes = Convert.FromBase64String(IV);
+            this.IV = IVAsBytes;
+        }
+
         public void CreateVault()
         {
-            _domainsWithPasswords = new Dictionary<string, string>();
+            _domainsWithPasswords = new Dictionary<string, string>
+            {
+                { "Facebook", "password1" },
+                { "Amazon", "password2" },
+                { "Apple", "password3" },
+                { "Netflix", "password4" },
+                { "Google", "password5" }
+            };
 
-            Vault = new Dictionary<string, string>();
-            string value = JsonSerializer.Serialize(_domainsWithPasswords);
-            Vault.Add("vault", "goooogle");
+            Vault = new Dictionary<string, Dictionary<string, string>>();
+            Vault.Add("vault", _domainsWithPasswords);
         }
 
         public byte[] Encrypt(Rfc2898DeriveBytes vaultKey)
@@ -45,13 +59,13 @@ namespace PasswordManager
 
             using (Aes aes = Aes.Create())
             {
-                aes.Key = vaultKey.GetBytes(aes.KeySize / 8); // Use the full derived key
-                aes.IV = IV;
-                //ICryptoTransform encryptor = aes.CreateEncryptor(vaultKey.GetBytes(aes.KeySize / 8), IV);
+                //aes.Key = vaultKey.GetBytes(aes.KeySize / 8); // Use the full derived key
+                //aes.IV = IV;
+                ICryptoTransform encryptor = aes.CreateEncryptor(vaultKey.GetBytes(aes.KeySize / 8), IV);
 
                 using (MemoryStream memoryStream = new MemoryStream())
                 {
-                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
+                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
                     {
                         using (StreamWriter streamWriter = new StreamWriter(cryptoStream))
                         {
@@ -66,6 +80,13 @@ namespace PasswordManager
             return result;
         }
 
+        public byte[] GetEncryptedVault()
+        {
+            FileHandler fileHandler = new FileHandler();
+            string encryptedVault = fileHandler.ReadValueFromJson(this.Path, "vault");
+            return Convert.FromBase64String(encryptedVault);
+        }
+
         public void WriteIVAndEncryptedVaultToJSON(byte[] encryptedVaultValue)
         {
             // Gör om byte[] till sträng
@@ -77,7 +98,7 @@ namespace PasswordManager
             serverFileKeyValuePairs["IV"] = IVAsString;
 
             string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs);
-            File.WriteAllText(_path, serverFileAsJsonText);
+            File.WriteAllText(Path, serverFileAsJsonText);
         }
 
         public string Decrypt(byte[] encryptedVaultAsBytes, Rfc2898DeriveBytes vaultKey)
@@ -86,16 +107,14 @@ namespace PasswordManager
             {
                 using (Aes aes = Aes.Create())
                 {
-                    aes.Key = vaultKey.GetBytes(aes.KeySize / 8); // Use the full derived key
-                    aes.IV = IV;
-                    //ICryptoTransform decryptor = aes.CreateDecryptor(vaultKey.GetBytes(aes.KeySize / 8), IV);
+                    ICryptoTransform decryptor = aes.CreateDecryptor(vaultKey.GetBytes(aes.KeySize / 8), IV);
+
                     using (MemoryStream memoryStream = new MemoryStream(encryptedVaultAsBytes))
                     {
-                        using (CryptoStream cryptoStream = new CryptoStream(memoryStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
+                        using (CryptoStream cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
                         {
                             using (StreamReader streamReader = new StreamReader(cryptoStream))
                             {
-                                Console.WriteLine(streamReader.ReadToEnd());
                                 return streamReader.ReadToEnd();
                             }
                         }

@@ -1,6 +1,5 @@
 ﻿
 using System.Security.Cryptography;
-using System.Text;
 
 namespace PasswordManager
 {
@@ -8,7 +7,7 @@ namespace PasswordManager
     {
         private string _path;
         private int _lengthOfKey = 16;
-        public byte[] SecretKeyAsBytes { get; private set; }
+        public byte[] SecretKeyAsBytes;
 
         public Client(string path)
         {
