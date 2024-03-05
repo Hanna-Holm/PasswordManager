@@ -1,8 +1,7 @@
 ﻿
-using System;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace PasswordManager
 {
@@ -86,13 +85,20 @@ namespace PasswordManager
             Server server = new Server(serverPath);
             server.SetIV();
 
-            bool couldAuthenticate = authenticator.TryAuthenticateClient(vaultKey, server);
-            if (couldAuthenticate)
+            //bool couldAuthenticate = authenticator.TryAuthenticateClient(vaultKey, server);
+            byte[] encryptedVault = server.GetEncryptedVault();
+            string decryptedVault = server.Decrypt(encryptedVault, vaultKey);
+
+            if (decryptedVault == null)
             {
-                string newClientPath = args[1];
-                fileHandler.WriteToJson(newClientPath, "secret", secretKey);
-                Console.WriteLine($"Successfully logged in to server and created new client: {newClientPath}");
+                Console.WriteLine("Could not authenticate client.");
+                return;
             }
+
+            string newClientPath = args[1];
+            fileHandler.WriteToJson(newClientPath, "secret", secretKey);
+            Console.WriteLine($"Successfully logged in to server and created new client: {newClientPath}");
+
         }
 
         // "get"-command
@@ -152,11 +158,16 @@ namespace PasswordManager
 
             Server server = new Server(serverPath);
             server.SetIV();
-            byte[] encryptedVault = server.GetEncryptedVault();
+
+            string serverFileAsText = File.ReadAllText(serverPath);
+            Dictionary<string, string> KeyValuePairs = JsonSerializer.Deserialize<Dictionary<string, string>>(serverFileAsText);
+            string encryptedVault = KeyValuePairs["vault"];
+            Console.WriteLine("GetEncryptedVault returned: " + encryptedVault);
+            byte[] encryptedVaultAsBytes = Convert.FromBase64String(encryptedVault);
 
             try
             {
-                string decryptedVault = server.Decrypt(encryptedVault, vaultKey);
+                string decryptedVault = server.Decrypt(encryptedVaultAsBytes, vaultKey);
 
                 string key = args[3];
                 string password = "";
@@ -187,7 +198,8 @@ namespace PasswordManager
                 server.Vault = new Dictionary<string, Dictionary<string, string>>();
                 server.Vault.Add("vault", decryptedVaultKeyValuePairs);
 
-                byte[] encryptedVaultValuesAsBytes = server.Encrypt(vaultKey);
+                byte[] encryptedVaultValuesAsBytes;
+                encryptedVaultValuesAsBytes = server.Encrypt(vaultKey);
 
                 server.WriteIVAndEncryptedVaultToJSON(encryptedVaultValuesAsBytes);
             }

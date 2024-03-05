@@ -41,15 +41,7 @@ namespace PasswordManager
 
         public void CreateVault()
         {
-            _domainsWithPasswords = new Dictionary<string, string>
-            {
-                { "Facebook", "password1" },
-                { "Amazon", "password2" },
-                { "Apple", "password3" },
-                { "Netflix", "password4" },
-                { "Google", "password5" }
-            };
-
+            _domainsWithPasswords = new Dictionary<string, string>();
             Vault = new Dictionary<string, Dictionary<string, string>>();
             Vault.Add("vault", _domainsWithPasswords);
         }
@@ -57,30 +49,41 @@ namespace PasswordManager
         public byte[] Encrypt(Rfc2898DeriveBytes vaultKey)
         {
             string textToEncrypt = JsonSerializer.Serialize(Vault["vault"]);
+            Console.WriteLine("Entering Encrypt method, this is the string to encrypt: " + textToEncrypt);
             byte[] result;
 
-            using (Aes aes = Aes.Create())
+            // Create an Aes object
+            // with the specified key and IV.
+            using (Aes aesAlg = Aes.Create())
             {
-                aes.Padding = PaddingMode.PKCS7; // Set padding mode
-                aes.Key = vaultKey.GetBytes(16); // Set the key
-                aes.IV = IV; // Set the IV
+                aesAlg.Padding = PaddingMode.PKCS7;
+                aesAlg.Key = vaultKey.GetBytes(16);
+                aesAlg.IV = IV;
 
-                ICryptoTransform encryptor = aes.CreateEncryptor();
-                
-                using (MemoryStream memoryStream = new MemoryStream())
+                // Create an encryptor to perform the stream transform.
+                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
+
+                // Create the streams used for encryption.
+                using (MemoryStream msEncrypt = new MemoryStream())
                 {
-                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
+                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
                     {
-                        using (StreamWriter streamWriter = new StreamWriter(cryptoStream))
+                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
                         {
-                            streamWriter.Write(textToEncrypt);
+                            //Write all data to the stream.
+                            swEncrypt.Write(textToEncrypt);
                         }
+                        result = msEncrypt.ToArray();
                     }
-
-                    result = memoryStream.ToArray();
                 }
             }
 
+            // Return the encrypted bytes from the memory stream.
+            Console.WriteLine("Exiting Encrypt method, this is the result: ");
+            foreach (var b in result)
+            {
+                Console.Write(b + " ");
+            }
             return result;
         }
 
@@ -88,6 +91,7 @@ namespace PasswordManager
         {
             FileHandler fileHandler = new FileHandler();
             string encryptedVault = fileHandler.ReadValueFromJson(this.Path, "vault");
+            Console.WriteLine("GetEncryptedVault returned: " + encryptedVault);
             return Convert.FromBase64String(encryptedVault);
         }
 
@@ -97,18 +101,21 @@ namespace PasswordManager
             string encryptedVaultValueAsString = Convert.ToBase64String(encryptedVaultValue);
             string IVAsString = Convert.ToBase64String(IV);
 
+            Console.WriteLine("Entering method WriteIVAndEncryptedVaultToJSON, this is the string getting saved to server.json: " + encryptedVaultValueAsString);
+
             Dictionary<string, string> serverFileKeyValuePairs = new Dictionary<string, string>();
             serverFileKeyValuePairs["vault"] = encryptedVaultValueAsString;
             serverFileKeyValuePairs["IV"] = IVAsString;
 
-            string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs, new JsonSerializerOptions()
-            {
-                /* Using UnsafeRelaxedJsonEscaped to fix that the "+" character was getting converted to "\u00-something"
-                 * which caused an error when trying to decrypt with the secret key.
-                 */
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-            }
-            );
+            string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs);
+            //string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs, new JsonSerializerOptions()
+            //{
+            //    /* Using UnsafeRelaxedJsonEscaped to fix that the "+" character was getting converted to "\u00-something"
+            //     * which caused an error when trying to decrypt with the secret key.
+            //     */
+            //    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            //}
+            //);
 
             File.WriteAllText(Path, serverFileAsJsonText);
         }
@@ -117,24 +124,41 @@ namespace PasswordManager
         {
             try
             {
-                using (Aes aes = Aes.Create())
+                Console.WriteLine("Entering Decrypt method!!! EncryptedVaultAsBytes is ");
+                foreach ( var v in encryptedVaultAsBytes)
                 {
-                    aes.Padding = PaddingMode.PKCS7; // Set padding mode
-                    aes.Key = vaultKey.GetBytes(16); // Set the key
-                    aes.IV = IV; // Set the IV
-                    ICryptoTransform decryptor = aes.CreateDecryptor();
-                    
-                    using (MemoryStream memoryStream = new MemoryStream(encryptedVaultAsBytes))
+                    Console.Write(v + " ");
+                }
+                Console.WriteLine();
+                string plaintext = null;
+
+                using (Aes aesAlg = Aes.Create())
+                {
+                    aesAlg.Padding = PaddingMode.PKCS7;
+                    aesAlg.Key = vaultKey.GetBytes(16);
+                    aesAlg.IV = IV;
+
+                    // Create a decryptor to perform the stream transform.
+                    ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+
+                    // Create the streams used for decryption.
+                    using (MemoryStream msDecrypt = new MemoryStream(encryptedVaultAsBytes))
                     {
-                        using (CryptoStream cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
+                        using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
                         {
-                            using (StreamReader streamReader = new StreamReader(cryptoStream))
+                            using (StreamReader srDecrypt = new StreamReader(csDecrypt))
                             {
-                                return streamReader.ReadToEnd();
+
+                                // Read the decrypted bytes from the decrypting stream
+                                // and place them in a string.
+                                plaintext = srDecrypt.ReadToEnd();
+                                Console.WriteLine("This is the plaintext in decrypt method: " + plaintext);
                             }
                         }
                     }
                 }
+
+                return plaintext;
             }
             catch 
             {
