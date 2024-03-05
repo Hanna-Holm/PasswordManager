@@ -25,6 +25,13 @@ namespace PasswordManager
             return Convert.ToBase64String(SecretKeyAsBytes);
         }
 
+        public void SetSecretKey()
+        {
+            FileHandler fileHandler = new FileHandler();
+            string secretKeyAsString = fileHandler.ReadValueFromJson(_path, "secret");
+            SecretKeyAsBytes = Convert.FromBase64String(secretKeyAsString);
+        }
+
         public Rfc2898DeriveBytes DeriveVaultKey()
         {
             Console.WriteLine("Enter your master password: ");

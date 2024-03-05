@@ -1,6 +1,8 @@
 ﻿
+using System;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace PasswordManager
 {
@@ -22,13 +24,13 @@ namespace PasswordManager
                     ShowPropertyValueInVault(args);
                     break;
                 case "set":
-                    StorePropertyValueInVault();
+                    StorePropertyValueInVault(args);
                     break;
                 case "delete":
-                    DeletePropertyFromVault();
+                    DeletePropertyFromVault(args);
                     break;
                 case "secret":
-                    ShowSecretKey();
+                    ShowSecretKey(args);
                     break;
                 default:
                     Console.WriteLine("The command is not valid.");
@@ -82,8 +84,7 @@ namespace PasswordManager
 
             string serverPath = args[2];
             Server server = new Server(serverPath);
-            string IV = fileHandler.ReadValueFromJson(serverPath, "IV");
-            server.SetIV(IV);
+            server.SetIV();
 
             bool couldAuthenticate = authenticator.TryAuthenticateClient(vaultKey, server);
             if (couldAuthenticate)
@@ -101,18 +102,11 @@ namespace PasswordManager
             string serverPath = args[2];
 
             Client client = new Client(clientPath);
-            FileHandler fileHandler = new FileHandler();
-            Authenticator authenticator = new Authenticator();
-
-            string secretKeyAsString = fileHandler.ReadValueFromJson(clientPath, "secret");
-            client.SecretKeyAsBytes = Convert.FromBase64String(secretKeyAsString);
-
+            client.SetSecretKey();
             Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
 
             Server server = new Server(serverPath);
-            string IV = fileHandler.ReadValueFromJson(server.Path, "IV");
-            server.SetIV(IV);
-
+            server.SetIV();
             byte[] encryptedVault = server.GetEncryptedVault();
             string decryptedVault = server.Decrypt(encryptedVault, vaultKey);
             try
@@ -141,19 +135,76 @@ namespace PasswordManager
         }
 
         // "set"-command: save domain with password in server.json "vault"
-        private static void StorePropertyValueInVault()
+        private static void StorePropertyValueInVault(string[] args)
         {
+            if (args.Length <= 3)
+            {
+                Console.WriteLine("Invalid number of arguments.");
+                return;
+            }
 
+            string clientPath = args[1];
+            string serverPath = args[2];
+
+            Client client = new Client(clientPath);
+            client.SetSecretKey();
+            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
+
+            Server server = new Server(serverPath);
+            server.SetIV();
+            byte[] encryptedVault = server.GetEncryptedVault();
+
+            try
+            {
+                string decryptedVault = server.Decrypt(encryptedVault, vaultKey);
+
+                string key = args[3];
+                string password = "";
+
+                if (args.Length == 5 && (args[4] == "-g" || args[4] == "--generate"))
+                {
+                    password = new PasswordGenerator().Generate();
+                }
+                else
+                {
+                    Console.WriteLine($"What password would you like to store for {key}?");
+                    password = Console.ReadLine();
+                }
+
+                Dictionary<string, string> decryptedVaultKeyValuePairs = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedVault);
+
+                if (decryptedVaultKeyValuePairs.ContainsKey(key))
+                {
+                    decryptedVaultKeyValuePairs[key] = password;
+                }
+                else
+                {
+                    decryptedVaultKeyValuePairs.Add(key, password);
+                }
+
+                Console.WriteLine($"Successfully stored password: {password} for domain {key}");
+
+                server.Vault = new Dictionary<string, Dictionary<string, string>>();
+                server.Vault.Add("vault", decryptedVaultKeyValuePairs);
+
+                byte[] encryptedVaultValuesAsBytes = server.Encrypt(vaultKey);
+
+                server.WriteIVAndEncryptedVaultToJSON(encryptedVaultValuesAsBytes);
+            }
+            catch
+            {
+
+            }
         }
 
         // "delete"-command
-        private static void DeletePropertyFromVault()
+        private static void DeletePropertyFromVault(string[] args)
         {
 
         }
 
         // "secret"-command
-        private static void ShowSecretKey()
+        private static void ShowSecretKey(string[] args)
         {
 
         }

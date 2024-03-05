@@ -1,5 +1,6 @@
 ﻿
 using System.Security.Cryptography;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace PasswordManager
@@ -9,7 +10,7 @@ namespace PasswordManager
         public string Path;
         private int _lengthOfKey = 16;
         public byte[] IV { get; set; }
-        public Dictionary<string, Dictionary<string, string>> Vault { get; private set; }
+        public Dictionary<string, Dictionary<string, string>> Vault;
         private Dictionary<string, string> _domainsWithPasswords;
 
         public Server(string path)
@@ -30,9 +31,11 @@ namespace PasswordManager
 
         }
 
-        public void SetIV(string IV)
+        public void SetIV()
         {
-            byte[] IVAsBytes = Convert.FromBase64String(IV);
+            FileHandler fileHandler = new FileHandler();
+            string IVAsString = fileHandler.ReadValueFromJson(Path, "IV");
+            byte[] IVAsBytes = Convert.FromBase64String(IVAsString);
             this.IV = IVAsBytes;
         }
 
@@ -53,16 +56,17 @@ namespace PasswordManager
 
         public byte[] Encrypt(Rfc2898DeriveBytes vaultKey)
         {
-            // Vault key + IV
             string textToEncrypt = JsonSerializer.Serialize(Vault["vault"]);
             byte[] result;
 
             using (Aes aes = Aes.Create())
             {
-                //aes.Key = vaultKey.GetBytes(aes.KeySize / 8); // Use the full derived key
-                //aes.IV = IV;
-                ICryptoTransform encryptor = aes.CreateEncryptor(vaultKey.GetBytes(aes.KeySize / 8), IV);
+                aes.Padding = PaddingMode.PKCS7; // Set padding mode
+                aes.Key = vaultKey.GetBytes(16); // Set the key
+                aes.IV = IV; // Set the IV
 
+                ICryptoTransform encryptor = aes.CreateEncryptor();
+                
                 using (MemoryStream memoryStream = new MemoryStream())
                 {
                     using (CryptoStream cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
@@ -97,7 +101,15 @@ namespace PasswordManager
             serverFileKeyValuePairs["vault"] = encryptedVaultValueAsString;
             serverFileKeyValuePairs["IV"] = IVAsString;
 
-            string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs);
+            string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs, new JsonSerializerOptions()
+            {
+                /* Using UnsafeRelaxedJsonEscaped to fix that the "+" character was getting converted to "\u00-something"
+                 * which caused an error when trying to decrypt with the secret key.
+                 */
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            }
+            );
+
             File.WriteAllText(Path, serverFileAsJsonText);
         }
 
@@ -107,8 +119,11 @@ namespace PasswordManager
             {
                 using (Aes aes = Aes.Create())
                 {
-                    ICryptoTransform decryptor = aes.CreateDecryptor(vaultKey.GetBytes(aes.KeySize / 8), IV);
-
+                    aes.Padding = PaddingMode.PKCS7; // Set padding mode
+                    aes.Key = vaultKey.GetBytes(16); // Set the key
+                    aes.IV = IV; // Set the IV
+                    ICryptoTransform decryptor = aes.CreateDecryptor();
+                    
                     using (MemoryStream memoryStream = new MemoryStream(encryptedVaultAsBytes))
                     {
                         using (CryptoStream cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
