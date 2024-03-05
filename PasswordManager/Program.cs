@@ -1,5 +1,4 @@
 ﻿
-using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -52,7 +51,8 @@ namespace PasswordManager
             server.GenerateIV();
             server.CreateVault();
 
-            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
+            Rfc2898DeriveBytes authentication = client.Authenticate();
+            byte[] vaultKey = authentication.GetBytes(16);
             byte[] encryptedVaultValuesAsBytes = server.Encrypt(vaultKey);
             server.WriteIVAndEncryptedVaultToJSON(encryptedVaultValuesAsBytes);
         }
@@ -61,7 +61,6 @@ namespace PasswordManager
         private static void CreateNewClientFileToExistingVault(string[] args)
         {
             FileHandler fileHandler = new FileHandler();
-            Authenticator authenticator = new Authenticator();
 
             // NOTE! The master password NEEDS to be prompted first in order for the tests to pass!!
             Console.WriteLine("Enter your master password: ");
@@ -79,7 +78,8 @@ namespace PasswordManager
                 Console.WriteLine("Something went wrong.");
             }
 
-            Rfc2898DeriveBytes vaultKey = new Rfc2898DeriveBytes(masterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
+            Rfc2898DeriveBytes authentication = new Rfc2898DeriveBytes(masterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
+            byte[] vaultKey = authentication.GetBytes(16);
 
             string serverPath = args[2];
             Server server = new Server(serverPath);
@@ -109,7 +109,8 @@ namespace PasswordManager
 
             Client client = new Client(clientPath);
             client.SetSecretKey();
-            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
+            Rfc2898DeriveBytes authentication = client.Authenticate();
+            byte[] vaultKey = authentication.GetBytes(16);
 
             Server server = new Server(serverPath);
             server.SetIV();
@@ -154,7 +155,8 @@ namespace PasswordManager
 
             Client client = new Client(clientPath);
             client.SetSecretKey();
-            Rfc2898DeriveBytes vaultKey = client.DeriveVaultKey();
+            Rfc2898DeriveBytes authentication = client.Authenticate();
+            byte[] vaultKey = authentication.GetBytes(16);
 
             Server server = new Server(serverPath);
             server.SetIV();

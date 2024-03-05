@@ -46,7 +46,7 @@ namespace PasswordManager
             Vault.Add("vault", _domainsWithPasswords);
         }
 
-        public byte[] Encrypt(Rfc2898DeriveBytes vaultKey)
+        public byte[] Encrypt(byte[] vaultKey)
         {
             string textToEncrypt = JsonSerializer.Serialize(Vault["vault"]);
             Console.WriteLine("Entering Encrypt method, this is the string to encrypt: " + textToEncrypt);
@@ -57,7 +57,7 @@ namespace PasswordManager
             using (Aes aesAlg = Aes.Create())
             {
                 aesAlg.Padding = PaddingMode.PKCS7;
-                aesAlg.Key = vaultKey.GetBytes(16);
+                aesAlg.Key = vaultKey;
                 aesAlg.IV = IV;
 
                 // Create an encryptor to perform the stream transform.
@@ -107,24 +107,24 @@ namespace PasswordManager
             serverFileKeyValuePairs["vault"] = encryptedVaultValueAsString;
             serverFileKeyValuePairs["IV"] = IVAsString;
 
-            string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs);
-            //string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs, new JsonSerializerOptions()
-            //{
-            //    /* Using UnsafeRelaxedJsonEscaped to fix that the "+" character was getting converted to "\u00-something"
-            //     * which caused an error when trying to decrypt with the secret key.
-            //     */
-            //    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-            //}
-            //);
+            //string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs);
+            string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs, new JsonSerializerOptions()
+            {
+                /* Using UnsafeRelaxedJsonEscaped to fix that the "+" character was getting converted to "\u00-something"
+                 * which caused an error when trying to decrypt with the secret key.
+                 */
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            }
+            );
 
             File.WriteAllText(Path, serverFileAsJsonText);
         }
 
-        public string Decrypt(byte[] encryptedVaultAsBytes, Rfc2898DeriveBytes vaultKey)
+        public string Decrypt(byte[] encryptedVaultAsBytes, byte[] vaultKey)
         {
             try
             {
-                Console.WriteLine("Entering Decrypt method!!! EncryptedVaultAsBytes is ");
+                Console.Write("Entering Decrypt method!!! EncryptedVaultAsBytes is ");
                 foreach ( var v in encryptedVaultAsBytes)
                 {
                     Console.Write(v + " ");
@@ -135,7 +135,7 @@ namespace PasswordManager
                 using (Aes aesAlg = Aes.Create())
                 {
                     aesAlg.Padding = PaddingMode.PKCS7;
-                    aesAlg.Key = vaultKey.GetBytes(16);
+                    aesAlg.Key = vaultKey;
                     aesAlg.IV = IV;
 
                     // Create a decryptor to perform the stream transform.

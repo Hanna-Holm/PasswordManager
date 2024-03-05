@@ -32,7 +32,7 @@ namespace PasswordManager
             SecretKeyAsBytes = Convert.FromBase64String(secretKeyAsString);
         }
 
-        public Rfc2898DeriveBytes DeriveVaultKey()
+        public Rfc2898DeriveBytes Authenticate()
         {
             Console.WriteLine("Enter your master password: ");
             return new Rfc2898DeriveBytes(Console.ReadLine(), SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
