@@ -1,4 +1,5 @@
 ﻿
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace PasswordManager
@@ -12,10 +13,23 @@ namespace PasswordManager
                 { keyText, valueText }
             };
 
-            string jsonDictAsString = JsonSerializer.Serialize(keyValuePairs);
+            string jsonDictAsString = JsonSerializer.Serialize(keyValuePairs, new JsonSerializerOptions() 
+            { 
+                /* Using UnsafeRelaxedJsonEscaped to fix that the "+" character was getting converted to "\u00-something"
+                 * which caused an error when trying to decrypt with the secret key.
+                 */
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            }
+            );
 
             File.WriteAllText(path, jsonDictAsString);
         }
+
+        //public void WriteDictionaryToJson(string path, Dictionary<string, string> keyValuePairs)
+        //{
+        //    string jsonDictAsString = JsonSerializer.Serialize(keyValuePairs);
+        //    File.WriteAllText(path, jsonDictAsString);
+        //}
 
         public string ReadValueFromJson(string path, string keyText)
         {

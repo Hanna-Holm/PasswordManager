@@ -12,6 +12,21 @@
       "commandName": "Executable",
       "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
       "commandLineArgs": "create client2.json server.json"
+    },
+    "Get": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "commandLineArgs": "get client.json server.json"
+    },
+    "Set": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "commandLineArgs": "set client.json server.json bilddagboken"
+    },
+    "Set and randomize new": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "commandLineArgs": "set client.json server.json messenger -g"
     }
   }
 }
