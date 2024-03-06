@@ -21,12 +21,17 @@
     "Set": {
       "commandName": "Executable",
       "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
-      "commandLineArgs": "set client.json server.json bilddagboken"
+      "commandLineArgs": "set client.json server.json gmail.com"
     },
     "Set and randomize new": {
       "commandName": "Executable",
       "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
       "commandLineArgs": "set client.json server.json messenger -g"
+    },
+    "Get prop password": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "commandLineArgs": "get client.json server.json messenger"
     }
   }
 }

@@ -1,5 +1,7 @@
 ﻿
+using System;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace PasswordManager
 {
@@ -12,11 +14,12 @@ namespace PasswordManager
         public string Generate()
         {
             StringBuilder sb = new StringBuilder();
+            Random random = new Random();
 
             for (int i = 0; i < _length; i++)
             {
-                Random index = new Random();
-                sb.Append(_availableCharacters[index.Next(0, _availableCharacters.Length)]);
+                int index = random.Next(0, _availableCharacters.Length);
+                sb.Append(_availableCharacters[index]);
             }
 
             return sb.ToString();

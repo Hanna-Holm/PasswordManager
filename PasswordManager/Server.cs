@@ -31,29 +31,20 @@ namespace PasswordManager
 
         }
 
-        public void SetIV()
-        {
-            FileHandler fileHandler = new FileHandler();
-            string IVAsString = fileHandler.ReadValueFromJson(Path, "IV");
-            byte[] IVAsBytes = Convert.FromBase64String(IVAsString);
-            this.IV = IVAsBytes;
-        }
-
         public void CreateVault()
         {
             _domainsWithPasswords = new Dictionary<string, string>();
-            Vault = new Dictionary<string, Dictionary<string, string>>();
-            Vault.Add("vault", _domainsWithPasswords);
+            Vault = new Dictionary<string, Dictionary<string, string>>
+            {
+                { "vault", _domainsWithPasswords }
+            };
         }
 
         public byte[] Encrypt(byte[] vaultKey)
         {
             string textToEncrypt = JsonSerializer.Serialize(Vault["vault"]);
-            Console.WriteLine("Entering Encrypt method, this is the string to encrypt: " + textToEncrypt);
             byte[] result;
 
-            // Create an Aes object
-            // with the specified key and IV.
             using (Aes aesAlg = Aes.Create())
             {
                 aesAlg.Padding = PaddingMode.PKCS7;
@@ -79,57 +70,47 @@ namespace PasswordManager
             }
 
             // Return the encrypted bytes from the memory stream.
-            Console.WriteLine("Exiting Encrypt method, this is the result: ");
-            foreach (var b in result)
-            {
-                Console.Write(b + " ");
-            }
             return result;
         }
 
-        public byte[] GetEncryptedVault()
+        public void SetIV()
         {
             FileHandler fileHandler = new FileHandler();
-            string encryptedVault = fileHandler.ReadValueFromJson(this.Path, "vault");
-            Console.WriteLine("GetEncryptedVault returned: " + encryptedVault);
-            return Convert.FromBase64String(encryptedVault);
+            string IVAsString = fileHandler.ReadValueFromJson(Path, "IV");
+            byte[] IVAsBytes = Convert.FromBase64String(IVAsString);
+            IV = IVAsBytes;
         }
 
-        public void WriteIVAndEncryptedVaultToJSON(byte[] encryptedVaultValue)
+        public byte[] GetEncryptedAccounts()
         {
-            // Gör om byte[] till sträng
-            string encryptedVaultValueAsString = Convert.ToBase64String(encryptedVaultValue);
-            string IVAsString = Convert.ToBase64String(IV);
+            FileHandler fileHandler = new FileHandler();
+            string encryptedAccounts = fileHandler.ReadValueFromJson(this.Path, "vault");
+            return Convert.FromBase64String(encryptedAccounts);
+        }
 
-            Console.WriteLine("Entering method WriteIVAndEncryptedVaultToJSON, this is the string getting saved to server.json: " + encryptedVaultValueAsString);
+        public string FormatVaultToText(byte[] encryptedAccounts)
+        {
+            string encryptedAccountsAsText = Convert.ToBase64String(encryptedAccounts);
+            string IVAsText = Convert.ToBase64String(IV);
 
-            Dictionary<string, string> serverFileKeyValuePairs = new Dictionary<string, string>();
-            serverFileKeyValuePairs["vault"] = encryptedVaultValueAsString;
-            serverFileKeyValuePairs["IV"] = IVAsString;
+            Dictionary<string, string> server = new Dictionary<string, string>();
+            server["vault"] = encryptedAccountsAsText;
+            server["IV"] = IVAsText;
 
             //string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs);
-            string serverFileAsJsonText = JsonSerializer.Serialize(serverFileKeyValuePairs, new JsonSerializerOptions()
+            string serverFileAsJsonText = JsonSerializer.Serialize(server, new JsonSerializerOptions()
             {
-                /* Using UnsafeRelaxedJsonEscaped to fix that the "+" character was getting converted to "\u00-something"
-                 * which caused an error when trying to decrypt with the secret key.
-                 */
                 Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             }
             );
 
-            File.WriteAllText(Path, serverFileAsJsonText);
+            return serverFileAsJsonText;
         }
 
         public string Decrypt(byte[] encryptedVaultAsBytes, byte[] vaultKey)
         {
             try
             {
-                Console.Write("Entering Decrypt method!!! EncryptedVaultAsBytes is ");
-                foreach ( var v in encryptedVaultAsBytes)
-                {
-                    Console.Write(v + " ");
-                }
-                Console.WriteLine();
                 string plaintext = null;
 
                 using (Aes aesAlg = Aes.Create())
@@ -152,7 +133,6 @@ namespace PasswordManager
                                 // Read the decrypted bytes from the decrypting stream
                                 // and place them in a string.
                                 plaintext = srDecrypt.ReadToEnd();
-                                Console.WriteLine("This is the plaintext in decrypt method: " + plaintext);
                             }
                         }
                     }
