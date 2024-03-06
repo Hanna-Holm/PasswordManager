@@ -236,7 +236,7 @@ namespace PasswordManager
             }
             catch
             {
-
+                Console.WriteLine("Something went wrong");
             }
         }
 
@@ -249,6 +249,49 @@ namespace PasswordManager
                 return;
             }
 
+            string clientPath = args[1];
+            string serverPath = args[2];
+
+            Client client = new Client(clientPath);
+            FileHandler fileHandler = new FileHandler();
+            string secretKeyAsText = fileHandler.ReadValueFromJson(clientPath, "secret");
+            client.SetSecretKey(secretKeyAsText);
+
+            Console.WriteLine("Enter your master password: ");
+            Rfc2898DeriveBytes authentication = client.Authenticate(Console.ReadLine());
+            byte[] vaultKey = authentication.GetBytes(16);
+
+            Server server = new Server(serverPath);
+            server.SetIV();
+
+            string encryptedAccountsAsText = fileHandler.ReadValueFromJson(serverPath, "vault");
+            byte[] encryptedAccountsAsBytes = Convert.FromBase64String(encryptedAccountsAsText);
+            string decryptedAccountsAsText = server.Decrypt(encryptedAccountsAsBytes, vaultKey);
+
+            string key = args[3];
+
+            Dictionary<string, string> decryptedAccounts = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedAccountsAsText);
+
+            if (decryptedAccounts.ContainsKey(key))
+            {
+                decryptedAccounts.Remove(key);
+                Console.WriteLine($"Successfully removed your account {key}");
+
+            }
+            else
+            {
+                Console.WriteLine("Account does not exist");
+                return;
+            }
+
+            server.Vault = new Dictionary<string, Dictionary<string, string>>
+            {
+                { "vault", decryptedAccounts }
+            };
+
+            encryptedAccountsAsBytes = server.Encrypt(vaultKey);
+
+            File.WriteAllText(serverPath, server.FormatVaultToText(encryptedAccountsAsBytes));
 
         }
 
