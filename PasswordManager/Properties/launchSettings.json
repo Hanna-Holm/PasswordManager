@@ -5,33 +5,38 @@
     },
     "Init": {
       "commandName": "Executable",
-      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "executablePath": "C:\\Users\\blanc\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
       "commandLineArgs": "init client.json server.json"
     },
     "Create": {
       "commandName": "Executable",
-      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "executablePath": "C:\\Users\\blanc\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
       "commandLineArgs": "create client2.json server.json"
     },
     "Get": {
       "commandName": "Executable",
-      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
-      "commandLineArgs": "get client.json server.json"
+      "executablePath": "C:\\Users\\blanc\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "commandLineArgs": "get client.json server.json "
     },
     "Set": {
       "commandName": "Executable",
-      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "executablePath": "C:\\Users\\blanc\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
       "commandLineArgs": "set client.json server.json gmail.com"
     },
     "Set and randomize new": {
       "commandName": "Executable",
-      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "executablePath": "C:\\Users\\blanc\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
       "commandLineArgs": "set client.json server.json messenger -g"
     },
     "Get prop password": {
       "commandName": "Executable",
-      "executablePath": "C:\\Users\\Laptop\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "executablePath": "C:\\Users\\blanc\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
       "commandLineArgs": "get client.json server.json messenger"
+    },
+    "Delete": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\blanc\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "commandLineArgs": "delete client.json server.json gmail.com"
     }
   }
 }
