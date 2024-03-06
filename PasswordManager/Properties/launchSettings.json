@@ -37,6 +37,11 @@
       "commandName": "Executable",
       "executablePath": "C:\\Users\\blanc\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
       "commandLineArgs": "delete client.json server.json gmail.com"
+    },
+    "Secret": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\blanc\\source\\repos\\PasswordManager\\PasswordManager\\bin\\Debug\\net8.0\\PasswordManager.exe",
+      "commandLineArgs": "secret client.json "
     }
   }
 }
