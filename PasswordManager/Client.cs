@@ -25,17 +25,14 @@ namespace PasswordManager
             return Convert.ToBase64String(SecretKeyAsBytes);
         }
 
-        public void SetSecretKey()
+        public void SetSecretKey(string secretKeyAsString)
         {
-            FileHandler fileHandler = new FileHandler();
-            string secretKeyAsString = fileHandler.ReadValueFromJson(_path, "secret");
             SecretKeyAsBytes = Convert.FromBase64String(secretKeyAsString);
         }
 
-        public Rfc2898DeriveBytes DeriveVaultKey()
+        public Rfc2898DeriveBytes Authenticate(string masterPassword)
         {
-            Console.WriteLine("Enter your master password: ");
-            return new Rfc2898DeriveBytes(Console.ReadLine(), SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
+            return new Rfc2898DeriveBytes(masterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
         }
     }
 }
