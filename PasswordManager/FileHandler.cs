@@ -25,12 +25,6 @@ namespace PasswordManager
             File.WriteAllText(path, jsonDictAsString);
         }
 
-        //public void WriteDictionaryToJson(string path, Dictionary<string, string> keyValuePairs)
-        //{
-        //    string jsonDictAsString = JsonSerializer.Serialize(keyValuePairs);
-        //    File.WriteAllText(path, jsonDictAsString);
-        //}
-
         public string ReadValueFromJson(string path, string keyText)
         {
             string fileAsText = File.ReadAllText(path);

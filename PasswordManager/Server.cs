@@ -11,7 +11,6 @@ namespace PasswordManager
         private readonly int _lengthOfKey = 16;
         public byte[] IV { get; set; }
         public Dictionary<string, Dictionary<string, string>> Vault;
-        private Dictionary<string, string> _accounts;
         private FileHandler _fileHandler = new FileHandler();
 
         public Server(string path)
@@ -22,12 +21,11 @@ namespace PasswordManager
         public void Initialize()
         {
             GenerateIV();
-            CreateVault();
+            CreateVault(new Dictionary<string, string>());
         }
 
         private void GenerateIV()
         {
-            // Antingen via RandomNumberGenerator:
             using (RandomNumberGenerator generator = RandomNumberGenerator.Create())
             {
                 IV = new byte[_lengthOfKey];
@@ -35,12 +33,11 @@ namespace PasswordManager
             }
         }
 
-        private void CreateVault()
+        public void CreateVault(Dictionary<string, string> accounts)
         {
-            _accounts = new Dictionary<string, string>();
             Vault = new Dictionary<string, Dictionary<string, string>>
             {
-                { "vault", _accounts }
+                { "vault", accounts }
             };
         }
 
@@ -142,9 +139,9 @@ namespace PasswordManager
 
                 return plaintext;
             }
-            catch 
+            catch
             {
-                Console.WriteLine("Could not decrypt data.");
+                Console.WriteLine("Something went wrong.");
                 return null;
             }
         }
