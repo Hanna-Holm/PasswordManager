@@ -1,5 +1,4 @@
 ﻿
-using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace PasswordManager
@@ -18,19 +17,19 @@ namespace PasswordManager
             switch (command)
             {
                 case "init":
-                    InitializeVault(args);
+                    Initialize(args);
                     break;
                 case "create":
-                    CreateNewClientFileToExistingVault(args);
+                    CreateNewClient(args);
                     break;
                 case "get":
-                    ShowPropertyValueInVault(args);
+                    GetLoginCredentials(args);
                     break;
                 case "set":
-                    StorePropertyValueInVault(args);
+                    SetPassword(args);
                     break;
                 case "delete":
-                    DeletePropertyFromVault(args);
+                    DeleteAccount(args);
                     break;
                 case "secret":
                     ShowSecretKey(args);
@@ -41,113 +40,93 @@ namespace PasswordManager
             }
         }
 
-        // "init"-command - the creation and encryption of a vault
-        private static void InitializeVault(string[] args)
+        private static void Initialize(string[] args)
         {
-            if (args.Length < 3)
+            bool isArgumentLengthValid = CheckIfArgumentsLengthIsValid(args, 3);
+            if (!isArgumentLengthValid)
             {
-                Console.WriteLine("Invalid number of arguments.");
                 return;
             }
 
             string clientPath = args[1];
             Client client = new Client(clientPath);
-            string secretKey = client.GenerateSecretKey();
-            FileHandler fileHandler = new FileHandler();
-            fileHandler.WriteToJson(clientPath, "secret", secretKey);
+            client.Initialize();
 
             string serverPath = args[2];
             Server server = new Server(serverPath);
-            server.GenerateIV();
-            server.CreateVault();
+            server.Initialize();
 
-            Console.WriteLine("Enter your master password: ");
-            Rfc2898DeriveBytes authentication = client.Authenticate(Console.ReadLine());
-            byte[] vaultKey = authentication.GetBytes(16);
-            byte[] encryptedVaultValuesAsBytes = server.Encrypt(vaultKey);
-            File.WriteAllText(serverPath, server.FormatVaultToText(encryptedVaultValuesAsBytes));
+            string masterPassword = client.PromptUser("master password");
+            byte[] vaultKey = client.GetVaultKey(masterPassword);
+            byte[] encryptedAccountsAsBytes = server.Encrypt(vaultKey);
+            File.WriteAllText(serverPath, server.FormatServerToText(encryptedAccountsAsBytes));
         }
 
-        // "create" command: creates a new client-file to an existing server
-        private static void CreateNewClientFileToExistingVault(string[] args)
+        private static void CreateNewClient(string[] args)
         {
-            if (args.Length < 3)
+            bool isArgumentLengthValid = CheckIfArgumentsLengthIsValid(args, 3);
+            if (!isArgumentLengthValid)
             {
-                Console.WriteLine("Invalid number of arguments.");
                 return;
             }
 
-            FileHandler fileHandler = new FileHandler();
-
-            // NOTE! The master password NEEDS to be prompted first in order for the tests to pass!!
-            Console.WriteLine("Enter your master password: ");
-            string masterPassword = Console.ReadLine();
-            Console.WriteLine("Enter your secret key: ");
-            string secretKey = Console.ReadLine();
-            byte[] SecretKeyAsBytes = new byte[16];
-
-            try
+            string clientPath = args[1];
+            Client client = new Client(clientPath);
+            string masterPassword = client.PromptUser("master password");
+            string secretKey = client.PromptUser("secret key");
+            client.SetSecretKey(secretKey);
+            if (client.SecretKeyAsBytes == null)
             {
-                SecretKeyAsBytes = Convert.FromBase64String(secretKey);
+                return;
             }
-            catch
-            {
-                Console.WriteLine("Something went wrong.");
-            }
-
-            Rfc2898DeriveBytes authentication = new Rfc2898DeriveBytes(masterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
-            byte[] vaultKey = authentication.GetBytes(16);
 
             string serverPath = args[2];
             Server server = new Server(serverPath);
             server.SetIV();
-
-            //bool couldAuthenticate = authenticator.TryAuthenticateClient(vaultKey, server);
-            byte[] encryptedVault = server.GetEncryptedAccounts();
-            string decryptedVault = server.Decrypt(encryptedVault, vaultKey);
-
-            if (decryptedVault == null)
+            byte[] encryptedAccounts = server.GetEncryptedAccounts();
+            byte[] vaultKey = client.GetVaultKey(masterPassword);
+            string decryptedAccounts = server.Decrypt(encryptedAccounts, vaultKey);
+            if (decryptedAccounts == null)
             {
-                Console.WriteLine("Could not authenticate client.");
                 return;
             }
 
             string newClientPath = args[1];
+            FileHandler fileHandler = new FileHandler();
             fileHandler.WriteToJson(newClientPath, "secret", secretKey);
             Console.WriteLine($"Successfully logged in to server and created new client: {newClientPath}");
-
         }
 
-        // "get"-command
-        private static void ShowPropertyValueInVault(string[] args)
+        private static void GetLoginCredentials(string[] args)
         {
-            if (args.Length < 3)
+            bool isArgumentLengthValid = CheckIfArgumentsLengthIsValid(args, 3);
+            if (!isArgumentLengthValid)
             {
-                Console.WriteLine("Invalid number of arguments.");
                 return;
             }
 
             string clientPath = args[1];
             Client client = new Client(clientPath);
-            FileHandler fileHandler = new FileHandler();
-            string secretKeyAsString = fileHandler.ReadValueFromJson(clientPath, "secret");
-            client.SetSecretKey(secretKeyAsString);
-            Console.WriteLine("Enter your master password: ");
-            Rfc2898DeriveBytes authentication = client.Authenticate(Console.ReadLine());
-            byte[] vaultKey = authentication.GetBytes(16);
+            client.ReadAndSetSecretKey();
+            if (client.SecretKeyAsBytes == null)
+            {
+                return;
+            }
+
+            string masterPassword = client.PromptUser("master password");
+            byte[] vaultKey = client.GetVaultKey(masterPassword);
 
             string serverPath = args[2];
             Server server = new Server(serverPath);
             server.SetIV();
-            byte[] encryptedVault = server.GetEncryptedAccounts();
-            string decryptedVault = server.Decrypt(encryptedVault, vaultKey);
+            byte[] encryptedAccounts = server.GetEncryptedAccounts();
+            string decryptedAccounts = server.Decrypt(encryptedAccounts, vaultKey);
             try
             {
-                Dictionary<string, string> vault = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedVault);
+                Dictionary<string, string> vault = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedAccounts);
 
                 if (args.Length == 4)
                 {
-                    // args[3] är property (domänen) för vilken vi vill hämta ut specifikt lösenord
                     string propertyRequest = args[3];
                     string requestedPassword = vault[propertyRequest];
                     Console.WriteLine("The requested password is: ");
@@ -168,71 +147,64 @@ namespace PasswordManager
             }
         }
 
-        // "set"-command: save domain with password in server.json "vault"
-        private static void StorePropertyValueInVault(string[] args)
+        private static void SetPassword(string[] args)
         {
-            if (args.Length < 4)
+            bool isArgumentLengthValid = CheckIfArgumentsLengthIsValid(args, 4);
+            if (!isArgumentLengthValid)
             {
-                Console.WriteLine("Invalid number of arguments.");
                 return;
             }
 
             string clientPath = args[1];
-            string serverPath = args[2];
-
             Client client = new Client(clientPath);
-            FileHandler fileHandler = new FileHandler();
-            string secretKeyAsText = fileHandler.ReadValueFromJson(clientPath, "secret");
-            client.SetSecretKey(secretKeyAsText);
+            client.ReadAndSetSecretKey();
+            if (client.SecretKeyAsBytes == null)
+            {
+                return;
+            }
 
-            Console.WriteLine("Enter your master password: ");
-            Rfc2898DeriveBytes authentication = client.Authenticate(Console.ReadLine());
-            byte[] vaultKey = authentication.GetBytes(16);
+            string masterPassword = client.PromptUser("master password");
+            byte[] vaultKey = client.GetVaultKey(masterPassword);
 
+            string serverPath = args[2];
             Server server = new Server(serverPath);
             server.SetIV();
+            byte[] encryptedAccounts = server.GetEncryptedAccounts();
+            string decryptedAccounts = server.Decrypt(encryptedAccounts, vaultKey);
 
-            string encryptedVaultAsText = fileHandler.ReadValueFromJson(serverPath, "vault");
-            byte[] encryptedVaultAsBytes = Convert.FromBase64String(encryptedVaultAsText);
-            string decryptedVault = server.Decrypt(encryptedVaultAsBytes, vaultKey);
-
-            string key = args[3];
-            string password = "";
-
+            string username = args[3];
             try
             {
+                string password;
                 if (args.Length == 5 && (args[4] == "-g" || args[4] == "--generate"))
                 {
                     password = new PasswordGenerator().Generate();
                 }
                 else
                 {
-                    Console.WriteLine($"What password would you like to store for {key}?");
-                    password = Console.ReadLine();
+                    password = client.PromptUser($"password to store for {username}");
                 }
 
-                Dictionary<string, string> decryptedVaultKeyValuePairs = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedVault);
+                Dictionary<string, string> decryptedUsernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedAccounts);
 
-                if (decryptedVaultKeyValuePairs.ContainsKey(key))
+                if (decryptedUsernamesAndPasswords.ContainsKey(username))
                 {
-                    decryptedVaultKeyValuePairs[key] = password;
+                    decryptedUsernamesAndPasswords[username] = password;
                 }
                 else
                 {
-                    decryptedVaultKeyValuePairs.Add(key, password);
+                    decryptedUsernamesAndPasswords.Add(username, password);
                 }
 
-                Console.WriteLine($"Successfully stored password: {password} for domain {key}");
+                Console.WriteLine($"Successfully stored password: {password} for domain {username}");
 
                 server.Vault = new Dictionary<string, Dictionary<string, string>>
                 {
-                    { "vault", decryptedVaultKeyValuePairs }
+                    { "vault", decryptedUsernamesAndPasswords }
                 };
 
-                byte[] encryptedVaultValuesAsBytes;
-                encryptedVaultValuesAsBytes = server.Encrypt(vaultKey);
-
-                File.WriteAllText(serverPath, server.FormatVaultToText(encryptedVaultValuesAsBytes));
+                encryptedAccounts = server.Encrypt(vaultKey);
+                File.WriteAllText(serverPath, server.FormatServerToText(encryptedAccounts));
             }
             catch
             {
@@ -240,43 +212,38 @@ namespace PasswordManager
             }
         }
 
-        // "delete"-command: remove account from vault
-        private static void DeletePropertyFromVault(string[] args)
+        private static void DeleteAccount(string[] args)
         {
-            if (args.Length < 4)
+            bool isArgumentLengthValid = CheckIfArgumentsLengthIsValid(args, 4);
+            if (!isArgumentLengthValid)
             {
-                Console.WriteLine("Invalid number of arguments.");
                 return;
             }
 
             string clientPath = args[1];
-            string serverPath = args[2];
-
             Client client = new Client(clientPath);
-            FileHandler fileHandler = new FileHandler();
-            string secretKeyAsText = fileHandler.ReadValueFromJson(clientPath, "secret");
-            client.SetSecretKey(secretKeyAsText);
+            client.ReadAndSetSecretKey();
+            if (client.SecretKeyAsBytes == null)
+            {
+                return;
+            }
 
-            Console.WriteLine("Enter your master password: ");
-            Rfc2898DeriveBytes authentication = client.Authenticate(Console.ReadLine());
-            byte[] vaultKey = authentication.GetBytes(16);
+            string masterPassword = client.PromptUser("master password");
+            byte[] vaultKey = client.GetVaultKey(masterPassword);
 
+            string serverPath = args[2];
             Server server = new Server(serverPath);
             server.SetIV();
-
-            string encryptedAccountsAsText = fileHandler.ReadValueFromJson(serverPath, "vault");
-            byte[] encryptedAccountsAsBytes = Convert.FromBase64String(encryptedAccountsAsText);
+            byte[] encryptedAccountsAsBytes = server.GetEncryptedAccounts();
             string decryptedAccountsAsText = server.Decrypt(encryptedAccountsAsBytes, vaultKey);
-
-            string key = args[3];
-
             Dictionary<string, string> decryptedAccounts = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedAccountsAsText);
 
-            if (decryptedAccounts.ContainsKey(key))
-            {
-                decryptedAccounts.Remove(key);
-                Console.WriteLine($"Successfully removed your account {key}");
+            string username = args[3];
 
+            if (decryptedAccounts.ContainsKey(username))
+            {
+                decryptedAccounts.Remove(username);
+                Console.WriteLine($"Successfully removed your account {username}");
             }
             else
             {
@@ -290,17 +257,14 @@ namespace PasswordManager
             };
 
             encryptedAccountsAsBytes = server.Encrypt(vaultKey);
-
-            File.WriteAllText(serverPath, server.FormatVaultToText(encryptedAccountsAsBytes));
-
+            File.WriteAllText(serverPath, server.FormatServerToText(encryptedAccountsAsBytes));
         }
 
-        // "secret"-command
         private static void ShowSecretKey(string[] args)
         {
-            if (args.Length < 2)
+            bool isArgumentLengthValid = CheckIfArgumentsLengthIsValid(args, 2);
+            if (!isArgumentLengthValid)
             {
-                Console.WriteLine("Invalid number of arguments.");
                 return;
             }
 
@@ -309,12 +273,22 @@ namespace PasswordManager
             if (File.Exists(clientPath))
             {
                 FileHandler fileHandler = new FileHandler();
-                
                 Console.WriteLine(fileHandler.ReadValueFromJson(clientPath, "secret"));
                 return;
             }
 
             Console.WriteLine("File does not exist");
+        }
+
+        private static bool CheckIfArgumentsLengthIsValid(string[] arguments, int minimalLength)
+        {
+            if (arguments.Length < minimalLength)
+            {
+                Console.WriteLine("Invalid number of arguments.");
+                return false;
+            }
+
+            return true;
         }
     }
 }
