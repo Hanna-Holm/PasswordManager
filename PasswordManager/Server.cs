@@ -8,17 +8,24 @@ namespace PasswordManager
     internal class Server
     {
         public string Path;
-        private int _lengthOfKey = 16;
+        private readonly int _lengthOfKey = 16;
         public byte[] IV { get; set; }
         public Dictionary<string, Dictionary<string, string>> Vault;
-        private Dictionary<string, string> _domainsWithPasswords;
+        private Dictionary<string, string> _accounts;
+        private FileHandler _fileHandler = new FileHandler();
 
         public Server(string path)
         {
             Path = path;
         }
 
-        public void GenerateIV()
+        public void Initialize()
+        {
+            GenerateIV();
+            CreateVault();
+        }
+
+        private void GenerateIV()
         {
             // Antingen via RandomNumberGenerator:
             using (RandomNumberGenerator generator = RandomNumberGenerator.Create())
@@ -26,17 +33,14 @@ namespace PasswordManager
                 IV = new byte[_lengthOfKey];
                 generator.GetBytes(IV);
             }
-
-            // Eller genom att skapa ett Aes-objekt för att generera IV
-
         }
 
-        public void CreateVault()
+        private void CreateVault()
         {
-            _domainsWithPasswords = new Dictionary<string, string>();
+            _accounts = new Dictionary<string, string>();
             Vault = new Dictionary<string, Dictionary<string, string>>
             {
-                { "vault", _domainsWithPasswords }
+                { "vault", _accounts }
             };
         }
 
@@ -61,7 +65,7 @@ namespace PasswordManager
                     {
                         using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
                         {
-                            //Write all data to the stream.
+                            // Write all data to the stream.
                             swEncrypt.Write(textToEncrypt);
                         }
                         result = msEncrypt.ToArray();
@@ -75,20 +79,18 @@ namespace PasswordManager
 
         public void SetIV()
         {
-            FileHandler fileHandler = new FileHandler();
-            string IVAsString = fileHandler.ReadValueFromJson(Path, "IV");
+            string IVAsString = _fileHandler.ReadValueFromJson(Path, "IV");
             byte[] IVAsBytes = Convert.FromBase64String(IVAsString);
             IV = IVAsBytes;
         }
 
         public byte[] GetEncryptedAccounts()
         {
-            FileHandler fileHandler = new FileHandler();
-            string encryptedAccounts = fileHandler.ReadValueFromJson(this.Path, "vault");
+            string encryptedAccounts = _fileHandler.ReadValueFromJson(Path, "vault");
             return Convert.FromBase64String(encryptedAccounts);
         }
 
-        public string FormatVaultToText(byte[] encryptedAccounts)
+        public string FormatServerToText(byte[] encryptedAccounts)
         {
             string encryptedAccountsAsText = Convert.ToBase64String(encryptedAccounts);
             string IVAsText = Convert.ToBase64String(IV);
