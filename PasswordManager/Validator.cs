@@ -13,5 +13,16 @@ namespace PasswordManager
 
             return true;
         }
+
+        public bool CheckIfUsernameIsProvided(string[] args)
+        {
+            if (args[3] == "-g" || args[3] == "--generate")
+            {
+                Console.WriteLine("No username provided.");
+                return false;
+            }
+
+            return true;
+        }
     }
 }

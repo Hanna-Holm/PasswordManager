@@ -8,6 +8,8 @@ namespace PasswordManager
         private string _path;
         private readonly int _lengthOfKey = 16;
         public byte[] SecretKeyAsBytes;
+        public string MasterPassword;
+        public string SecretKey;
 
         public Client(string path)
         {
@@ -34,7 +36,7 @@ namespace PasswordManager
         public void Initialize()
         {
             GenerateSecretKey();
-            string secretKey = GetSecretKeyAsText();
+            string secretKey = Convert.ToBase64String(SecretKeyAsBytes);
             FileHandler fileHandler = new FileHandler();
             fileHandler.WriteToJson(_path, "secret", secretKey);
         }
@@ -48,30 +50,27 @@ namespace PasswordManager
             }
         }
 
-        public string GetSecretKeyAsText()
+        public void Setup(bool shouldAskForSecretKey)
         {
-            return Convert.ToBase64String(SecretKeyAsBytes);
-        }
+            UserCommunicator communicator = new UserCommunicator();
+            MasterPassword = communicator.PromptUserFor("master password");
 
-        public void ReadAndSetSecretKey()
-        {
-            FileHandler fileHandler = new FileHandler();
-            try
+            if (shouldAskForSecretKey)
             {
-                string secretKeyAsText = fileHandler.ReadValueFromJson(_path, "secret");
-                SecretKeyAsBytes = Convert.FromBase64String(secretKeyAsText);
+                SecretKey = communicator.PromptUserFor("secret key");
+                SetSecretKey();
             }
-            catch
+            else
             {
-                Console.WriteLine("Could not read from file.");
+                ReadAndSetSecretKey();
             }
         }
 
-        public void SetSecretKey(string secretKey)
+        public void SetSecretKey()
         {
             try
             {
-                SecretKeyAsBytes = Convert.FromBase64String(secretKey);
+                SecretKeyAsBytes = Convert.FromBase64String(SecretKey);
             }
             catch
             {
@@ -80,10 +79,53 @@ namespace PasswordManager
             }
         }
 
+        public void ReadAndSetSecretKey()
+        {
+            FileHandler fileHandler = new FileHandler();
+            try
+            {
+                SecretKey = fileHandler.ReadValueFromJson(_path, "secret");
+                SecretKeyAsBytes = Convert.FromBase64String(SecretKey);
+            }
+            catch
+            {
+                Console.WriteLine("Could not read from file.");
+            }
+        }
+
+        public byte[] GetVaultKey()
+        {
+            Rfc2898DeriveBytes authentication = new Rfc2898DeriveBytes(MasterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
+            return authentication.GetBytes(16);
+        }
+
         public byte[] GetVaultKey(string masterPassword)
         {
             Rfc2898DeriveBytes authentication = new Rfc2898DeriveBytes(masterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
             return authentication.GetBytes(16);
+        }
+
+        public bool CanLoginToServer(string serverPath)
+        {
+            try
+            {
+                Server server = new Server(serverPath);
+                server.SetIV();
+                byte[] encryptedAccounts = server.GetEncryptedAccounts();
+                byte[] vaultKey = GetVaultKey();
+                string decryptedAccounts = server.Decrypt(encryptedAccounts, vaultKey);
+                if (decryptedAccounts == null)
+                {
+                    return false;
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Error.");
+                return false;
+            }
+
+            return true;
         }
     }
 }

@@ -2,6 +2,8 @@
 {
     internal class Secret : ICommand
     {
+        private FileHandler _fileHandler = new FileHandler();
+
         public void Run(string[] args)
         {
             bool isArgumentLengthValid = new Validator().ValidateArgumentsLength(args, 2);
@@ -14,8 +16,7 @@
 
             if (File.Exists(clientPath))
             {
-                FileHandler fileHandler = new FileHandler();
-                Console.WriteLine(fileHandler.ReadValueFromJson(clientPath, "secret"));
+                Console.WriteLine(_fileHandler.ReadValueFromJson(clientPath, "secret"));
                 return;
             }
 

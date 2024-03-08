@@ -4,35 +4,34 @@ namespace PasswordManager.Commands
 {
     internal class Set : ICommand
     {
+        private UserCommunicator _communicator = new UserCommunicator();
+        private string _username;
+        private bool _shouldAskForSecretKey = false;
+
         public void Run(string[] args)
         {
-            bool isArgumentLengthValid = new Validator().ValidateArgumentsLength(args, 4);
-            if (!isArgumentLengthValid)
-            {
-                return;
-            }
+            Validator validator = new Validator();
 
-            if (args[3] == "-g" || args[3] == "--generate")
+            bool isArgumentLengthValid = validator.ValidateArgumentsLength(args, 4);
+            bool isUsernameProvided = validator.CheckIfUsernameIsProvided(args);
+            if (!isArgumentLengthValid || !isUsernameProvided)
             {
-                Console.WriteLine("No username provided.");
                 return;
             }
 
             string clientPath = args[1];
             Client client = new Client(clientPath);
-            client.ReadAndSetSecretKey();
+            client.Setup(_shouldAskForSecretKey);
             if (client.SecretKeyAsBytes == null)
             {
                 return;
             }
 
-            string masterPassword = client.PromptUser("master password");
-            byte[] vaultKey = client.GetVaultKey(masterPassword);
-
             string serverPath = args[2];
             Server server = new Server(serverPath);
             server.SetIV();
             byte[] encryptedAccounts = server.GetEncryptedAccounts();
+            byte[] vaultKey = client.GetVaultKey();
             string decryptedAccounts = server.Decrypt(encryptedAccounts, vaultKey);
             if (decryptedAccounts == null)
             {
@@ -41,30 +40,22 @@ namespace PasswordManager.Commands
 
             try
             {
-                string password;
-                string username = args[3];
+                _username = args[3];
 
-                if (args.Length == 5 && (args[4] == "-g" || args[4] == "--generate"))
-                {
-                    password = new PasswordGenerator().Generate();
-                }
-                else
-                {
-                    password = client.PromptUser($"password to store for {username}");
-                }
-
+                string password = SetPassword(args);
+                
                 Dictionary<string, string> decryptedUsernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedAccounts);
 
-                if (decryptedUsernamesAndPasswords.ContainsKey(username))
+                if (decryptedUsernamesAndPasswords.ContainsKey(_username))
                 {
-                    decryptedUsernamesAndPasswords[username] = password;
+                    decryptedUsernamesAndPasswords[_username] = password;
                 }
                 else
                 {
-                    decryptedUsernamesAndPasswords.Add(username, password);
+                    decryptedUsernamesAndPasswords.Add(_username, password);
                 }
 
-                Console.WriteLine($"Successfully stored password: {password} for {username}");
+                Console.WriteLine($"Successfully stored password: {password} for {_username}");
 
                 server.CreateVault(decryptedUsernamesAndPasswords);
                 encryptedAccounts = server.Encrypt(vaultKey);
@@ -73,6 +64,18 @@ namespace PasswordManager.Commands
             catch
             {
                 Console.WriteLine("Something went wrong");
+            }
+        }
+
+        private string SetPassword(string[] args)
+        {
+            if (args.Length == 5 && (args[4] == "-g" || args[4] == "--generate"))
+            {
+                return new PasswordGenerator().Generate();
+            }
+            else
+            {
+                return _communicator.PromptUserFor($"password to store for {_username}");
             }
         }
     }

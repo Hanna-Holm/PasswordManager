@@ -4,6 +4,8 @@ namespace PasswordManager.Commands
 {
     internal class Delete : ICommand
     {
+        private UserCommunicator _communicator = new UserCommunicator();
+
         public void Run(string[] args)
         {
             bool isArgumentLengthValid = new Validator().ValidateArgumentsLength(args, 4);
@@ -20,8 +22,8 @@ namespace PasswordManager.Commands
                 return;
             }
 
-            string masterPassword = client.PromptUser("master password");
-            byte[] vaultKey = client.GetVaultKey(masterPassword);
+            client.MasterPassword = _communicator.PromptUserFor("master password");
+            byte[] vaultKey = client.GetVaultKey();
 
             string serverPath = args[2];
             Server server = new Server(serverPath);

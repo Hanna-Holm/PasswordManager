@@ -4,6 +4,8 @@ namespace PasswordManager.Commands
 {
     internal class Get : ICommand
     {
+        private UserCommunicator _communicator = new UserCommunicator();
+
         public void Run(string[] args)
         {
             bool isArgumentLengthValid = new Validator().ValidateArgumentsLength(args, 3);
