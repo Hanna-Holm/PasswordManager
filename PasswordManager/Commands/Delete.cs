@@ -9,22 +9,16 @@ namespace PasswordManager.Commands
         {
             bool isArgumentLengthValid = new Validator().ValidateArgumentsLength(args, 4);
             if (!isArgumentLengthValid)
-            {
                 return;
-            }
 
-            VaultDecryptor.LoginToServer(args[1], args[2], false, false);
+            VaultDecryptor.LoginToServer(args[1], args[2], CommandType.Update);
             if (VaultDecryptor.DecryptedAccounts == null)
-            {
                 return;
-            }
 
             Dictionary<string, string> decryptedUsernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(VaultDecryptor.DecryptedAccounts);
             string username = args[3];
             if (!CanDeleteAccount(decryptedUsernamesAndPasswords, username))
-            {
                 return;
-            }
 
             string accounts = JsonSerializer.Serialize(decryptedUsernamesAndPasswords);
             VaultEncryptor.LockVault(accounts, VaultDecryptor.ServerInstance);

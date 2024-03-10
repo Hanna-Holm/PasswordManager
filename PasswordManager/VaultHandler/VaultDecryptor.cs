@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using PasswordManager.Commands;
 
 namespace PasswordManager.VaultHandler
 {
@@ -11,35 +12,36 @@ namespace PasswordManager.VaultHandler
         public static byte[] VaultKey { get; private set; }
         public static Server ServerInstance { get; private set; }
 
-        public static void LoginToServer(string clientPath, string serverPath, bool isInitCommand, bool isCreateCommand)
+        public static void LoginToServer(string clientPath, string serverPath, CommandType commandType)
         {
             Client client = new Client(clientPath);
             client.MasterPassword = new UserCommunicator().PromptUserFor("master password");
 
-            if (isInitCommand)
+            switch (commandType)
             {
-                client.Initialize();
-            }
-            else if (isCreateCommand)
-            {
-                client.Create();
-            }
-            else
-            {
-                client.TrySetSecretFromFile();
+                case CommandType.Init:
+                    client.Initialize();
+                    break;
+                case CommandType.Create:
+                    client.SetSecretKeyFromPrompt();
+                    break;
+                default:
+                    client.TrySetSecretFromFile();
+                    break;
             }
 
             if (client.SecretKeyAsBytes == null)
-            {
                 return;
-            }
 
             SecretKey = client.SecretKey;
             VaultKey = client.GetVaultKey();
-
             ServerInstance = new Server(serverPath);
-            EncryptedAccounts = ServerInstance.GetEncryptedAccounts();
             IV = ServerInstance.IV;
+
+            if (commandType == CommandType.Init)
+                return;
+
+            EncryptedAccounts = ServerInstance.GetEncryptedAccounts();
             DecryptedAccounts = Decrypt(VaultKey, IV, EncryptedAccounts);
         }
 
@@ -78,7 +80,7 @@ namespace PasswordManager.VaultHandler
             }
             catch
             {
-                Console.WriteLine("Something went wrong.");
+                Console.WriteLine("Authorization failed.");
                 return null;
             }
         }

@@ -15,15 +15,11 @@ namespace PasswordManager.Commands
             bool isArgumentLengthValid = validator.ValidateArgumentsLength(args, 4);
             bool isUsernameProvided = validator.CheckIfUsernameIsProvided(args);
             if (!isArgumentLengthValid || !isUsernameProvided)
-            {
                 return;
-            }
 
-            VaultDecryptor.LoginToServer(args[1], args[2], false, false);
+            VaultDecryptor.LoginToServer(args[1], args[2], CommandType.Update);
             if (VaultDecryptor.DecryptedAccounts == null)
-            {
                 return;
-            }
 
             try
             {
@@ -33,9 +29,7 @@ namespace PasswordManager.Commands
                 Dictionary<string, string> decryptedUsernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(VaultDecryptor.DecryptedAccounts);
 
                 if (!decryptedUsernamesAndPasswords.TryAdd(_username, password))
-                {
                     decryptedUsernamesAndPasswords[_username] = password;
-                }
 
                 Console.WriteLine($"Successfully stored password: {password} for {_username}");
                 string accounts = JsonSerializer.Serialize(decryptedUsernamesAndPasswords);
@@ -50,13 +44,9 @@ namespace PasswordManager.Commands
         private string SetPassword(string[] args)
         {
             if (args.Length == 5 && (args[4] == "-g" || args[4] == "--generate"))
-            {
                 return new PasswordGenerator().Generate();
-            }
             else
-            {
                 return _communicator.PromptUserFor($"password to store for {_username}");
-            }
         }
     }
 }

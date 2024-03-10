@@ -40,8 +40,16 @@ namespace PasswordManager
 
         public byte[] GetEncryptedAccounts()
         {
-            string encryptedAccounts = _fileHandler.ReadValueFromJson(Path, "vault");
-            return Convert.FromBase64String(encryptedAccounts);
+            try
+            {
+                string encryptedAccounts = _fileHandler.ReadValueFromJson(Path, "vault");
+                return Convert.FromBase64String(encryptedAccounts);
+            }
+            catch
+            {
+                Console.WriteLine("Could not find server-file.");
+                return null;
+            }
         }
 
         public string FormatServerToText(byte[] encryptedAccounts)

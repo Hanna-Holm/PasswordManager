@@ -9,15 +9,11 @@ namespace PasswordManager.Commands
         {
             bool isArgumentLengthValid = new Validator().ValidateArgumentsLength(args, 3);
             if (!isArgumentLengthValid)
-            {
                 return;
-            }
 
-            VaultDecryptor.LoginToServer(args[1], args[2], false, false);
+            VaultDecryptor.LoginToServer(args[1], args[2], CommandType.Read);
             if (VaultDecryptor.DecryptedAccounts == null)
-            {
                 return;
-            }
 
             try
             {

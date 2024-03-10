@@ -8,9 +8,7 @@
         {
             bool isArgumentLengthValid = new Validator().ValidateArgumentsLength(args, 2);
             if (!isArgumentLengthValid)
-            {
                 return;
-            }
 
             string clientPath = args[1];
 

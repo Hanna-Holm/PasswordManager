@@ -44,7 +44,7 @@ namespace PasswordManager
             }
         }
 
-        public void Create()
+        public void SetSecretKeyFromPrompt()
         {
             SecretKey = _communicator.PromptUserFor("secret key");
             SetSecretKey();

@@ -34,6 +34,7 @@ namespace PasswordManager.VaultHandler
                             // Write all data to the stream.
                             swEncrypt.Write(textToEncrypt);
                         }
+
                         encryptedAccounts = msEncrypt.ToArray();
                         return encryptedAccounts;
                     }
