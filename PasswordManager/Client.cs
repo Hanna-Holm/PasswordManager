@@ -58,7 +58,7 @@ namespace PasswordManager
             }
             catch
             {
-                Console.WriteLine("Something went wrong.");
+                Console.WriteLine("Invalid input.");
                 return;
             }
         }
