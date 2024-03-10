@@ -7,39 +7,35 @@ namespace PasswordManager
     {
         private string _path;
         private readonly int _lengthOfKey = 16;
+        public string MasterPassword;
         public byte[] SecretKeyAsBytes;
+        public string SecretKey;
+        UserCommunicator _communicator = new UserCommunicator();
 
         public Client(string path)
         {
             _path = path;
         }
 
-        public string PromptUser(string prompt)
+        public void TrySetSecretFromFile()
         {
-            string input = "";
-
-            while (input == "")
+            if (File.Exists(_path))
             {
-                Console.WriteLine($"Enter the {prompt}: ");
-                input = Console.ReadLine();
-                if (input == "")
-                {
-                    Console.WriteLine($"The {prompt} cannot be empty.");
-                }
+                FileHandler fileHandler = new FileHandler();
+                SecretKey = fileHandler.ReadValueFromJson(_path, "secret");
+                SecretKeyAsBytes = Convert.FromBase64String(SecretKey);
             }
-
-            return input;
         }
 
         public void Initialize()
         {
             GenerateSecretKey();
-            string secretKey = GetSecretKeyAsText();
+            string secretKey = Convert.ToBase64String(SecretKeyAsBytes);
             FileHandler fileHandler = new FileHandler();
             fileHandler.WriteToJson(_path, "secret", secretKey);
         }
 
-        public void GenerateSecretKey()
+        private void GenerateSecretKey()
         {
             using (RandomNumberGenerator generator = RandomNumberGenerator.Create())
             {
@@ -48,30 +44,17 @@ namespace PasswordManager
             }
         }
 
-        public string GetSecretKeyAsText()
+        public void SetSecretKeyFromPrompt()
         {
-            return Convert.ToBase64String(SecretKeyAsBytes);
+            SecretKey = _communicator.PromptUserFor("secret key");
+            SetSecretKey();
         }
 
-        public void ReadAndSetSecretKey()
-        {
-            FileHandler fileHandler = new FileHandler();
-            try
-            {
-                string secretKeyAsText = fileHandler.ReadValueFromJson(_path, "secret");
-                SecretKeyAsBytes = Convert.FromBase64String(secretKeyAsText);
-            }
-            catch
-            {
-                Console.WriteLine("Could not read from file.");
-            }
-        }
-
-        public void SetSecretKey(string secretKey)
+        public void SetSecretKey()
         {
             try
             {
-                SecretKeyAsBytes = Convert.FromBase64String(secretKey);
+                SecretKeyAsBytes = Convert.FromBase64String(SecretKey);
             }
             catch
             {
@@ -80,9 +63,9 @@ namespace PasswordManager
             }
         }
 
-        public byte[] GetVaultKey(string masterPassword)
+        public byte[] GetVaultKey()
         {
-            Rfc2898DeriveBytes authentication = new Rfc2898DeriveBytes(masterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
+            Rfc2898DeriveBytes authentication = new Rfc2898DeriveBytes(MasterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
             return authentication.GetBytes(16);
         }
     }
