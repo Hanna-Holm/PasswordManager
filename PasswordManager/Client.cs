@@ -10,10 +10,21 @@ namespace PasswordManager
         public string MasterPassword;
         public byte[] SecretKeyAsBytes;
         public string SecretKey;
+        UserCommunicator _communicator = new UserCommunicator();
 
         public Client(string path)
         {
             _path = path;
+        }
+
+        public void TrySetSecretFromFile()
+        {
+            if (File.Exists(_path))
+            {
+                FileHandler fileHandler = new FileHandler();
+                SecretKey = fileHandler.ReadValueFromJson(_path, "secret");
+                SecretKeyAsBytes = Convert.FromBase64String(SecretKey);
+            }
         }
 
         public void Initialize()
@@ -24,7 +35,7 @@ namespace PasswordManager
             fileHandler.WriteToJson(_path, "secret", secretKey);
         }
 
-        public void GenerateSecretKey()
+        private void GenerateSecretKey()
         {
             using (RandomNumberGenerator generator = RandomNumberGenerator.Create())
             {
@@ -33,20 +44,10 @@ namespace PasswordManager
             }
         }
 
-        public void Setup(bool shouldAskForSecretKey)
+        public void Create()
         {
-            UserCommunicator communicator = new UserCommunicator();
-            MasterPassword = communicator.PromptUserFor("master password");
-
-            if (shouldAskForSecretKey)
-            {
-                SecretKey = communicator.PromptUserFor("secret key");
-                SetSecretKey();
-            }
-            else
-            {
-                ReadAndSetSecretKey();
-            }
+            SecretKey = _communicator.PromptUserFor("secret key");
+            SetSecretKey();
         }
 
         public void SetSecretKey()
@@ -59,20 +60,6 @@ namespace PasswordManager
             {
                 Console.WriteLine("Something went wrong.");
                 return;
-            }
-        }
-
-        public void ReadAndSetSecretKey()
-        {
-            FileHandler fileHandler = new FileHandler();
-            try
-            {
-                SecretKey = fileHandler.ReadValueFromJson(_path, "secret");
-                SecretKeyAsBytes = Convert.FromBase64String(SecretKey);
-            }
-            catch
-            {
-                Console.WriteLine("Could not read from file.");
             }
         }
 

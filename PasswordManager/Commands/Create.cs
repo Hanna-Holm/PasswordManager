@@ -13,27 +13,14 @@ namespace PasswordManager.Commands
                 return;
             }
 
-            string clientPath = args[1];
-            Client client = new Client(clientPath);
-            bool shouldAskForSecretKey = true;
-            client.Setup(shouldAskForSecretKey);
-            if (client.SecretKeyAsBytes == null)
-            {
-                return;
-            }
-
-            string serverPath = args[2];
-            Server server = new Server(serverPath);
-            byte[] encryptedAccounts = server.GetEncryptedAccounts();
-            byte[] vaultKey = client.GetVaultKey();
-            string decryptedAccounts = VaultDecryptor.Decrypt(vaultKey, server.IV, encryptedAccounts);
-            if (decryptedAccounts == null)
+            VaultDecryptor.LoginToServer(args[1], args[2], false, true);
+            if (VaultDecryptor.DecryptedAccounts == null)
             {
                 return;
             }
 
             string newClientPath = args[1];
-            CreateNewClient(newClientPath, client.SecretKey);
+            CreateNewClient(newClientPath, VaultDecryptor.SecretKey);
         }
 
         private void CreateNewClient(string newClientPath, string secretKey)

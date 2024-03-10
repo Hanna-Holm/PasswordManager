@@ -7,7 +7,6 @@ namespace PasswordManager.Commands
     {
         private UserCommunicator _communicator = new UserCommunicator();
         private string _username;
-        private bool _shouldAskForSecretKey = false;
 
         public void Run(string[] args)
         {
@@ -20,21 +19,8 @@ namespace PasswordManager.Commands
                 return;
             }
 
-            string clientPath = args[1];
-            Client client = new Client(clientPath);
-            client.Setup(_shouldAskForSecretKey);
-            if (client.SecretKeyAsBytes == null)
-            {
-                return;
-            }
-
-            string serverPath = args[2];
-            Server server = new Server(serverPath);
-            byte[] encryptedAccounts = server.GetEncryptedAccounts();
-            byte[] vaultKey = client.GetVaultKey();
-            string decryptedAccounts = VaultDecryptor.Decrypt(vaultKey, server.IV, encryptedAccounts);
-            
-            if (decryptedAccounts == null)
+            VaultDecryptor.LoginToServer(args[1], args[2], false, false);
+            if (VaultDecryptor.DecryptedAccounts == null)
             {
                 return;
             }
@@ -42,10 +28,9 @@ namespace PasswordManager.Commands
             try
             {
                 _username = args[3];
-
                 string password = SetPassword(args);
                 
-                Dictionary<string, string> decryptedUsernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedAccounts);
+                Dictionary<string, string> decryptedUsernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(VaultDecryptor.DecryptedAccounts);
 
                 if (!decryptedUsernamesAndPasswords.TryAdd(_username, password))
                 {
@@ -53,10 +38,8 @@ namespace PasswordManager.Commands
                 }
 
                 Console.WriteLine($"Successfully stored password: {password} for {_username}");
-                //server.Accounts = decryptedUsernamesAndPasswords;
-                decryptedAccounts = JsonSerializer.Serialize(decryptedUsernamesAndPasswords);
-                encryptedAccounts = VaultEncryptor.Encrypt(vaultKey, server.IV, decryptedAccounts);
-                File.WriteAllText(serverPath, server.FormatServerToText(encryptedAccounts));
+                string accounts = JsonSerializer.Serialize(decryptedUsernamesAndPasswords);
+                VaultEncryptor.LockVault(accounts, VaultDecryptor.ServerInstance);
             }
             catch
             {

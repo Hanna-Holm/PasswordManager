@@ -21,7 +21,7 @@ namespace PasswordManager.Commands
 
             string serverPath = args[2];
             Server server = new Server(serverPath);
-
+            
             client.MasterPassword = _communicator.PromptUserFor("master password");
             byte[] vaultKey = client.GetVaultKey();
             string accounts = JsonSerializer.Serialize(new Dictionary<string, string>());

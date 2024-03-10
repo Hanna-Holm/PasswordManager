@@ -5,8 +5,6 @@ namespace PasswordManager.Commands
 {
     internal class Delete : ICommand
     {
-        private UserCommunicator _communicator = new UserCommunicator();
-
         public void Run(string[] args)
         {
             bool isArgumentLengthValid = new Validator().ValidateArgumentsLength(args, 4);
@@ -15,29 +13,13 @@ namespace PasswordManager.Commands
                 return;
             }
 
-            string clientPath = args[1];
-            Client client = new Client(clientPath);
-            client.ReadAndSetSecretKey();
-            if (client.SecretKeyAsBytes == null)
+            VaultDecryptor.LoginToServer(args[1], args[2], false, false);
+            if (VaultDecryptor.DecryptedAccounts == null)
             {
                 return;
             }
 
-            client.MasterPassword = _communicator.PromptUserFor("master password");
-            byte[] vaultKey = client.GetVaultKey();
-
-            string serverPath = args[2];
-            Server server = new Server(serverPath);
-            FileHandler fileHandler = new FileHandler();
-            byte[] encryptedAccounts = server.GetEncryptedAccounts();
-            string decryptedAccounts = VaultDecryptor.Decrypt(vaultKey, server.IV, encryptedAccounts);
-            if (decryptedAccounts == null)
-            {
-                return;
-            }
-
-            Dictionary<string, string> decryptedUsernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedAccounts);
-
+            Dictionary<string, string> decryptedUsernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(VaultDecryptor.DecryptedAccounts);
             string username = args[3];
             if (!CanDeleteAccount(decryptedUsernamesAndPasswords, username))
             {
@@ -45,8 +27,7 @@ namespace PasswordManager.Commands
             }
 
             string accounts = JsonSerializer.Serialize(decryptedUsernamesAndPasswords);
-            byte[] encryptedAccountsAsBytes = VaultEncryptor.Encrypt(vaultKey, server.IV, accounts);
-            File.WriteAllText(serverPath, server.FormatServerToText(encryptedAccountsAsBytes));
+            VaultEncryptor.LockVault(accounts, VaultDecryptor.ServerInstance);
         }
 
         private static bool CanDeleteAccount(Dictionary<string, string> accounts, string username)

@@ -5,8 +5,6 @@ namespace PasswordManager.Commands
 {
     internal class Get : ICommand
     {
-        private UserCommunicator _communicator = new UserCommunicator();
-
         public void Run(string[] args)
         {
             bool isArgumentLengthValid = new Validator().ValidateArgumentsLength(args, 3);
@@ -15,29 +13,15 @@ namespace PasswordManager.Commands
                 return;
             }
 
-            string clientPath = args[1];
-            Client client = new Client(clientPath);
-            bool shouldAskForSecretKey = false;
-            client.Setup(shouldAskForSecretKey);
-
-            if (client.SecretKeyAsBytes == null)
-            {
-                return;
-            }
-
-            string serverPath = args[2];
-            Server server = new Server(serverPath);
-            byte[] encryptedAccounts = server.GetEncryptedAccounts();
-            byte[] vaultKey = client.GetVaultKey();
-            string decryptedAccounts = VaultDecryptor.Decrypt(vaultKey, server.IV, encryptedAccounts);
-            if (decryptedAccounts == null)
+            VaultDecryptor.LoginToServer(args[1], args[2], false, false);
+            if (VaultDecryptor.DecryptedAccounts == null)
             {
                 return;
             }
 
             try
             {
-                Dictionary<string, string> usernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedAccounts);
+                Dictionary<string, string> usernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(VaultDecryptor.DecryptedAccounts);
 
                 if (args.Length == 4)
                 {

@@ -5,6 +5,12 @@ namespace PasswordManager.VaultHandler
 {
     internal static class VaultEncryptor
     {
+        public static void LockVault(string decryptedAccounts, Server server)
+        {
+            byte[] encryptedAccountsAsBytes = VaultEncryptor.Encrypt(VaultDecryptor.VaultKey, VaultDecryptor.IV, decryptedAccounts);
+            File.WriteAllText(server.Path, server.FormatServerToText(encryptedAccountsAsBytes));
+        }
+
         public static byte[] Encrypt(byte[] vaultKey, byte[] IV, string textToEncrypt)
         {
             byte[] encryptedAccounts;
