@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using PasswordManager.VaultHandler;
+using System.Text.Json;
 
 namespace PasswordManager.Commands
 {
@@ -16,20 +17,19 @@ namespace PasswordManager.Commands
 
             string clientPath = args[1];
             Client client = new Client(clientPath);
-            client.ReadAndSetSecretKey();
+            bool shouldAskForSecretKey = false;
+            client.Setup(shouldAskForSecretKey);
+
             if (client.SecretKeyAsBytes == null)
             {
                 return;
             }
 
-            string masterPassword = client.PromptUser("master password");
-            byte[] vaultKey = client.GetVaultKey(masterPassword);
-
             string serverPath = args[2];
             Server server = new Server(serverPath);
-            server.SetIV();
             byte[] encryptedAccounts = server.GetEncryptedAccounts();
-            string decryptedAccounts = server.Decrypt(encryptedAccounts, vaultKey);
+            byte[] vaultKey = client.GetVaultKey();
+            string decryptedAccounts = VaultDecryptor.Decrypt(vaultKey, server.IV, encryptedAccounts);
             if (decryptedAccounts == null)
             {
                 return;

@@ -7,30 +7,13 @@ namespace PasswordManager
     {
         private string _path;
         private readonly int _lengthOfKey = 16;
-        public byte[] SecretKeyAsBytes;
         public string MasterPassword;
+        public byte[] SecretKeyAsBytes;
         public string SecretKey;
 
         public Client(string path)
         {
             _path = path;
-        }
-
-        public string PromptUser(string prompt)
-        {
-            string input = "";
-
-            while (input == "")
-            {
-                Console.WriteLine($"Enter the {prompt}: ");
-                input = Console.ReadLine();
-                if (input == "")
-                {
-                    Console.WriteLine($"The {prompt} cannot be empty.");
-                }
-            }
-
-            return input;
         }
 
         public void Initialize()
@@ -97,35 +80,6 @@ namespace PasswordManager
         {
             Rfc2898DeriveBytes authentication = new Rfc2898DeriveBytes(MasterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
             return authentication.GetBytes(16);
-        }
-
-        public byte[] GetVaultKey(string masterPassword)
-        {
-            Rfc2898DeriveBytes authentication = new Rfc2898DeriveBytes(masterPassword, SecretKeyAsBytes, 10000, HashAlgorithmName.SHA256);
-            return authentication.GetBytes(16);
-        }
-
-        public bool CanLoginToServer(string serverPath)
-        {
-            try
-            {
-                Server server = new Server(serverPath);
-                server.SetIV();
-                byte[] encryptedAccounts = server.GetEncryptedAccounts();
-                byte[] vaultKey = GetVaultKey();
-                string decryptedAccounts = server.Decrypt(encryptedAccounts, vaultKey);
-                if (decryptedAccounts == null)
-                {
-                    return false;
-                }
-            }
-            catch
-            {
-                Console.WriteLine("Error.");
-                return false;
-            }
-
-            return true;
         }
     }
 }

@@ -1,4 +1,7 @@
-﻿namespace PasswordManager.Commands
+﻿using PasswordManager.VaultHandler;
+using System.Text.Json;
+
+namespace PasswordManager.Commands
 {
     internal class Init : ICommand
     {
@@ -18,18 +21,14 @@
 
             string serverPath = args[2];
             Server server = new Server(serverPath);
-            server.Initialize();
 
-            byte[] encryptedAccountsAsBytes = LockVault(client, server);
-            File.WriteAllText(serverPath, server.FormatServerToText(encryptedAccountsAsBytes));
-            Console.WriteLine("Successfully initialized client and server.");
-        }
-
-        private byte[] LockVault(Client client, Server server) 
-        {
             client.MasterPassword = _communicator.PromptUserFor("master password");
             byte[] vaultKey = client.GetVaultKey();
-            return server.Encrypt(vaultKey);
+            string accounts = JsonSerializer.Serialize(new Dictionary<string, string>());
+            byte[] encryptedAccountsAsBytes =  VaultEncryptor.Encrypt(vaultKey, server.IV, accounts);
+
+            File.WriteAllText(serverPath, server.FormatServerToText(encryptedAccountsAsBytes));
+            Console.WriteLine("Successfully initialized client and server.");
         }
     }
 }

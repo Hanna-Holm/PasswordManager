@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using PasswordManager.VaultHandler;
+using System.Text.Json;
 
 namespace PasswordManager.Commands
 {
@@ -29,10 +30,10 @@ namespace PasswordManager.Commands
 
             string serverPath = args[2];
             Server server = new Server(serverPath);
-            server.SetIV();
             byte[] encryptedAccounts = server.GetEncryptedAccounts();
             byte[] vaultKey = client.GetVaultKey();
-            string decryptedAccounts = server.Decrypt(encryptedAccounts, vaultKey);
+            string decryptedAccounts = VaultDecryptor.Decrypt(vaultKey, server.IV, encryptedAccounts);
+            
             if (decryptedAccounts == null)
             {
                 return;
@@ -46,19 +47,15 @@ namespace PasswordManager.Commands
                 
                 Dictionary<string, string> decryptedUsernamesAndPasswords = JsonSerializer.Deserialize<Dictionary<string, string>>(decryptedAccounts);
 
-                if (decryptedUsernamesAndPasswords.ContainsKey(_username))
+                if (!decryptedUsernamesAndPasswords.TryAdd(_username, password))
                 {
                     decryptedUsernamesAndPasswords[_username] = password;
                 }
-                else
-                {
-                    decryptedUsernamesAndPasswords.Add(_username, password);
-                }
 
                 Console.WriteLine($"Successfully stored password: {password} for {_username}");
-
-                server.CreateVault(decryptedUsernamesAndPasswords);
-                encryptedAccounts = server.Encrypt(vaultKey);
+                //server.Accounts = decryptedUsernamesAndPasswords;
+                decryptedAccounts = JsonSerializer.Serialize(decryptedUsernamesAndPasswords);
+                encryptedAccounts = VaultEncryptor.Encrypt(vaultKey, server.IV, decryptedAccounts);
                 File.WriteAllText(serverPath, server.FormatServerToText(encryptedAccounts));
             }
             catch

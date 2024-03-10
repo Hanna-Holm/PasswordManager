@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using PasswordManager.VaultHandler;
+using System.Text.Json;
 
 namespace PasswordManager.Commands
 {
@@ -27,9 +28,9 @@ namespace PasswordManager.Commands
 
             string serverPath = args[2];
             Server server = new Server(serverPath);
-            server.SetIV();
+            FileHandler fileHandler = new FileHandler();
             byte[] encryptedAccounts = server.GetEncryptedAccounts();
-            string decryptedAccounts = server.Decrypt(encryptedAccounts, vaultKey);
+            string decryptedAccounts = VaultDecryptor.Decrypt(vaultKey, server.IV, encryptedAccounts);
             if (decryptedAccounts == null)
             {
                 return;
@@ -43,9 +44,9 @@ namespace PasswordManager.Commands
                 return;
             }
 
-            server.CreateVault(decryptedUsernamesAndPasswords);
-            encryptedAccounts = server.Encrypt(vaultKey);
-            File.WriteAllText(serverPath, server.FormatServerToText(encryptedAccounts));
+            string accounts = JsonSerializer.Serialize(decryptedUsernamesAndPasswords);
+            byte[] encryptedAccountsAsBytes = VaultEncryptor.Encrypt(vaultKey, server.IV, accounts);
+            File.WriteAllText(serverPath, server.FormatServerToText(encryptedAccountsAsBytes));
         }
 
         private static bool CanDeleteAccount(Dictionary<string, string> accounts, string username)

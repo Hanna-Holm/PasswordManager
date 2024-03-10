@@ -1,4 +1,6 @@
-﻿namespace PasswordManager.Commands
+﻿using PasswordManager.VaultHandler;
+
+namespace PasswordManager.Commands
 {
     internal class Create : ICommand
     {
@@ -21,7 +23,11 @@
             }
 
             string serverPath = args[2];
-            if (!client.CanLoginToServer(serverPath))
+            Server server = new Server(serverPath);
+            byte[] encryptedAccounts = server.GetEncryptedAccounts();
+            byte[] vaultKey = client.GetVaultKey();
+            string decryptedAccounts = VaultDecryptor.Decrypt(vaultKey, server.IV, encryptedAccounts);
+            if (decryptedAccounts == null)
             {
                 return;
             }
