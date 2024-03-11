@@ -42,10 +42,10 @@ namespace PasswordManager.VaultHandler
                 return;
 
             EncryptedAccounts = ServerInstance.GetEncryptedAccounts();
-            DecryptedAccounts = Decrypt(VaultKey, IV, EncryptedAccounts);
+            DecryptedAccounts = Decrypt();
         }
 
-        public static string Decrypt(byte[] vaultKey, byte[] IV, byte[] encryptedAccountsAsBytes)
+        public static string Decrypt()
         {
             try
             {
@@ -54,22 +54,21 @@ namespace PasswordManager.VaultHandler
                 using (Aes aesAlg = Aes.Create())
                 {
                     aesAlg.Padding = PaddingMode.PKCS7;
-                    aesAlg.Key = vaultKey;
+                    aesAlg.Key = VaultKey;
                     aesAlg.IV = IV;
 
                     // Create a decryptor to perform the stream transform.
                     ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
                     // Create the streams used for decryption.
-                    using (MemoryStream msDecrypt = new MemoryStream(encryptedAccountsAsBytes))
+                    using (MemoryStream msDecrypt = new MemoryStream(EncryptedAccounts))
                     {
                         using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
                         {
                             using (StreamReader srDecrypt = new StreamReader(csDecrypt))
                             {
 
-                                // Read the decrypted bytes from the decrypting stream
-                                // and place them in a string.
+                                // Read the decrypted bytes from the decrypting stream and place them in a string.
                                 plaintext = srDecrypt.ReadToEnd();
                             }
                         }

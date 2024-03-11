@@ -9,7 +9,6 @@ namespace PasswordManager
         public string Path;
         private readonly int _lengthOfKey = 16;
         public byte[] IV { get; set; }
-        public Dictionary<string, string> Accounts = new Dictionary<string, string>();
         private FileHandler _fileHandler = new FileHandler();
 
         public Server(string path)
